@@ -1,6 +1,6 @@
+#!/usr/bin/env bash
 # Run cross-spectral analysis across tropics by iterating over tiles of 30deg longitude.
 
-cd /users/global/bethar/python/precipitation-VOD-ISV/src
 for lon_west in {-180..150..30}
 do
 python csagan_multiprocess.py tropics JJA $lon_west $((lon_west+30)) -35 35 2>&1 | tee tropics_MAM_noswmask.txt;

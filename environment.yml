@@ -1,0 +1,9 @@
+name: cpeo
+channels:
+  - conda-forge
+dependencies:
+  - iris
+  - python=3
+  - psutil
+  - tqdm
+  - xarray

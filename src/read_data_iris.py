@@ -1,4 +1,5 @@
 import iris
+import iris.cube
 from iris.util import equalise_attributes
 import os
 import numpy as np
