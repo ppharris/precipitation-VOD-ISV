@@ -14,8 +14,7 @@ from subprocess import run
 from netCDF4 import Dataset
 from read_data_iris import read_data_all_years, read_land_sea_mask
 from datetime_utils import *
-import sys
-
+import argparse
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).
 # csagan is run separately for each pixel to allow for each pixel having missing data
@@ -37,6 +36,38 @@ variable_units = {'IMERG': 'mm/day',
 
 variable_names = {'IMERG': 'Precipitation (IMERG)',
                   'VOD': 'Vegetation optical depth'}
+
+
+def parse_args():
+    """Read the command line arguments."""
+
+    parser = argparse.ArgumentParser(
+        description="Program for running spectral analysis."
+    )
+
+    parser.add_argument("--executable", "-e", type=str, required=True,
+                        help="Path to compiled executable of csagan1.1.f.")
+
+    parser.add_argument("--nproc", "-n", type=int, default=None,
+                        help=("Number of processes to use in the multiprocessing pool. "
+                              "Default: os.cpu_count()."))
+
+    parser.add_argument("--region", "-r", type=str, required=True,
+                        help="Name of region to be processed.")
+
+    parser.add_argument("--season", "-s", type=str, required=True,
+                        help="Season to be processed, e.g., MJJAS.")
+
+    parser.add_argument("--coords", "-c", type=float, nargs=4, required=True,
+                        help=("Coords region to be processed "
+                              "(lon W, lon E, lat S lat N)."))
+
+    parser.add_argument("--work-dir", "-w", type=str, required=True,
+                        help="Directory to write large output files.")
+
+    args = parser.parse_args()
+
+    return args
 
 
 def pad_match_time(dates1, dates2, data1, data2):
@@ -543,14 +574,17 @@ def read_csagan_output(process_id, directory='.'):
     return spectra_results
     
 
-def reference_response_spectra(exe_filename, process_id, reference_variable, response_variable,
-                               dates, reference_data, response_data):
+def reference_response_spectra(exe_filename, work_directory, process_id,
+                               reference_variable, response_variable, dates,
+                               reference_data, response_data):
     """
     Perform cross-spectral analysis on a pixel, given data for two variables
     Parameters
     ----------
     exe_filename: str
         Path to compiled csagan executable
+    work_directory: str
+        Path to directory for work reference spectra.
     process_id: int
         Process ID for pixel computation
     reference_variable: str
@@ -571,16 +605,13 @@ def reference_response_spectra(exe_filename, process_id, reference_variable, res
         coherency, phase difference and its 95% confidence interval bounds, amplitude ratio
         and its 95% confidence interval bounds
     """
-    output_directory = os.path.dirname(exe_filename)
-    if output_directory == '':
-        output_directory = '.'
-    data_filename = f'{output_directory}/{reference_variable}_{response_variable}_input-{process_id}.nc'
+    data_filename = f'{work_directory}/{reference_variable}_{response_variable}_input-{process_id}.nc'
     try:
         create_input_file(reference_variable, response_variable, dates, reference_data, response_data,
                           data_filename)
         spectra_results = default_run(exe_filename, reference_variable, response_variable, data_filename)
         delete_csagan_output(process_id, directory='.')
-        delete_csagan_input(process_id, reference_variable, response_variable, directory=output_directory)
+        delete_csagan_input(process_id, reference_variable, response_variable, directory=work_directory)
     except:
         print(f'***NO SPECTRA CREATED FOR PIXEL {process_id}***')
         spectra_results = {}
@@ -601,6 +632,8 @@ def csa_from_indices(coords):
     spectra: dict
     Dictionary of cross-spectral analysis results (frequency, coherency, amplitude, phase difference) for pixel
     """
+    csagan_exe = init_dict['csagan_exe']
+    work_dir = init_dict['work_dir']
     response_variable = init_dict['response_variable']
     reference_variable = init_dict['reference_variable']
     decimal_dates = np.frombuffer(init_dict['dates']).reshape(init_dict['dates_shape'])
@@ -615,10 +648,9 @@ def csa_from_indices(coords):
     if sufficient_readings:
         px_ids = np.frombuffer(init_dict['px_id']).reshape(init_dict['px_id_shape'])
         process_id = int(px_ids[lat_idx, lon_idx])
-        d = '/users/global/bethar/python/precipitation-VOD-ISV'
-        spectra = reference_response_spectra(f'{d}/csagan/csagan-multiprocess-updated.x', process_id,
+        spectra = reference_response_spectra(csagan_exe, work_dir, process_id,
                                              reference_variable, response_variable,
-                	                         decimal_dates, reference_array[:, lat_idx, lon_idx],
+                                             decimal_dates, reference_array[:, lat_idx, lon_idx],
                                              response_array[:, lat_idx, lon_idx])
     else:
         spectra = {}
@@ -646,12 +678,15 @@ def make_shared_array(data_array, dtype=np.float64):
     return data_shared, data_array.shape
 
 
-def init_worker(reference_variable, response_variable, decimal_dates, dates_shape,
-                reference_array, reference_shape, response_array, response_shape,
-                px_id_array, px_id_shape):
+def init_worker(csagan_exe, work_dir, reference_variable, response_variable,
+                decimal_dates, dates_shape, reference_array, reference_shape,
+                response_array, response_shape, px_id_array, px_id_shape):
     """
     Helper function for the multiprocessing. Makes all the relevant data accessible by all the processes.
     """
+    init_dict['csagan_exe'] = csagan_exe
+    init_dict['work_dir'] = work_dir
+
     init_dict['reference_variable'] = reference_variable
     init_dict['response_variable'] = response_variable
     init_dict['dates'] = decimal_dates
@@ -726,12 +761,17 @@ def write_to_dataset(filename, results, results_lats, results_lons):
     pickle.dump(region_array, open(filename, 'wb'))
 
 
-if __name__ == '__main__':
+def main():
+    args = parse_args()
+
     # run e.g. ">> python csagan_multiprocess.py tropics NDJFM -180 180 -35 35" for pan-tropical analysis in NDJFM
-    region_name = sys.argv[1]
-    season = sys.argv[2]
-    region_coords = sys.argv[3:]
-    lon_west, lon_east, lat_south, lat_north = [float(coord) for coord in region_coords]
+    csagan_exe = args.executable
+    work_dir = args.work_dir
+    nproc = args.nproc
+    region_name = args.region
+    season = args.season
+    lon_west, lon_east, lat_south, lat_north = args.coords
+
     print(f'region: {region_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg')
 
     reference_variable = 'IMERG'
@@ -764,17 +804,33 @@ if __name__ == '__main__':
     response_shared, response_shape = make_shared_array(response_array)
     px_id_shared, px_id_shape = make_shared_array(px_ids)
 
-    shared_data = (reference_variable, response_variable, dates_shared, dates_shape,
-                   reference_shared, reference_shape, response_shared, response_shape,
-                   px_id_shared, px_id_shape)
+    shared_data = (
+        csagan_exe, work_dir,
+        reference_variable, response_variable,
+        dates_shared, dates_shape,
+        reference_shared, reference_shape,
+        response_shared, response_shape,
+        px_id_shared, px_id_shape
+    )
+
     # Perform cross-spectral analysis for each pixel in selected region and save results with pickle
     print(f'start pool: {total_pixels} pixels')
     start = time.time()
-    with Pool(processes=8, initializer=init_worker, initargs=shared_data) as pool:
+    with Pool(processes=nproc, initializer=init_worker, initargs=shared_data) as pool:
         csa_output = pool.map(csa_from_indices, coords, chunksize=1)
     results = np.reshape(csa_output, response_shape[1:], order='F')
     end = time.time()
     dud_pixels = (results=={}).sum(axis=1).sum(axis=0)
     print(f'completed {total_pixels} pixels in {end-start} seconds, {dud_pixels} pixels did not have enough data for computation')
+
     band_label = f'_{band}' if (reference_variable == 'VOD' or response_variable == 'VOD') else ''
-    write_to_dataset(f'/prj/nceo/bethar/cross_spectral_analysis_results/test/{region_name}_{reference_variable}_{response_variable}_spectra{band_label}_{season}_mask_sw_best85.p', results, lats, lons)
+
+    file_tmp = f'{region_name}_{reference_variable}_{response_variable}_spectra{band_label}_{season}_mask_sw_best85.pkl'
+    path_tmp = os.path.join(work_dir, file_tmp)
+
+    print(f"Writing output to {path_tmp}")
+    write_to_dataset(path_tmp, results, lats, lons)
+
+
+if __name__ == '__main__':
+    main()
