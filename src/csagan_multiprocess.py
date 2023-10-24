@@ -63,7 +63,10 @@ def parse_args():
                               "(lon W, lon E, lat S lat N)."))
 
     parser.add_argument("--work-dir", "-w", type=str, required=True,
-                        help="Directory to write large output files.")
+                        help="Directory to write temporary work files.")
+
+    parser.add_argument("--output-dir", "-o", type=str, required=True,
+                        help="Directory to write output files.")
 
     args = parser.parse_args()
 
@@ -767,10 +770,17 @@ def main():
     # run e.g. ">> python csagan_multiprocess.py tropics NDJFM -180 180 -35 35" for pan-tropical analysis in NDJFM
     csagan_exe = args.executable
     work_dir = args.work_dir
+    output_dir = args.output_dir
     nproc = args.nproc
     region_name = args.region
     season = args.season
     lon_west, lon_east, lat_south, lat_north = args.coords
+
+    # Ensure the various output directories exist before doing any heavy
+    # calculations.
+    for dirname in (work_dir, output_dir):
+        print(f"Creating directory {dirname}")
+        os.makedirs(dirname, exist_ok=True)
 
     print(f'region: {region_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg')
 
@@ -826,7 +836,7 @@ def main():
     band_label = f'_{band}' if (reference_variable == 'VOD' or response_variable == 'VOD') else ''
 
     file_tmp = f'{region_name}_{reference_variable}_{response_variable}_spectra{band_label}_{season}_mask_sw_best85.pkl'
-    path_tmp = os.path.join(work_dir, file_tmp)
+    path_tmp = os.path.join(output_dir, file_tmp)
 
     print(f"Writing output to {path_tmp}")
     write_to_dataset(path_tmp, results, lats, lons)
