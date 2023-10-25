@@ -11,45 +11,20 @@ Saves maps of neighbourhood average properties in a dictionary using pickle.
 Bethan Harris, UKCEH, 18/11/2020
 """
 
+import argparse
 import numpy as np
+import os
 import time
+import sys
 import pickle
 import itertools
-from tqdm import tqdm
+# from tqdm import tqdm
 from multiprocessing import Pool
+
 from read_csagan_saved_output import read_region_data
 
 
-##### CONFIGURATION SECTION #####
-##### Edit variables in this section to desired values before running script #####
-reference_variable_name = 'IMERG'
-response_variable_name = 'VOD_X' # For plot titles/filenames
-tile = 'tropics'
-season = 'DJF'
-# Path to cross-spectral analysis output (as saved from csagan_multiprocessing.py)
-spectra_save_dir = '/prj/nceo/bethar/cross_spectral_analysis_results/test/'
-spectra_filename = f"{spectra_save_dir}/{tile}_IMERG_VOD_spectra_X_{season}_mask_sw_best85.p"
-# Periods defining the band of variability to analyse
-band_days_lower = 40.
-band_days_upper = 60.
-##### END OF CONFIGURATION #####
-
-# Coordinates of tile extent
-lon_west = -180
-lon_east = 180
-tile_lats_south = {'tropics': -35, 'northern': 25, 'southern': -60}
-tile_lats_north = {'tropics': 35, 'northern': 65, 'southern': -25}
-lat_south = tile_lats_south[tile]
-lat_north = tile_lats_north[tile]
-
-# Check whether you remembered to change the filename for the CSA output... not foolproof...
-variable_name_components = reference_variable_name.split('_') + response_variable_name.split('_')
-if not(all([v in spectra_filename for v in variable_name_components])):
-    print('#############################')
-    print('Check this is the right CSA output file, it does not seem to match variables selected.')
-    print('#############################')
-lats, lons, spectra = read_region_data(spectra_filename, tile, lon_west, lon_east, lat_south, lat_north, resolution=0.25)
-no_csa = (spectra == {})
+_global_shared_data = {}
 
 
 def neighbourhood_indices(lat_idx, lon_idx):
@@ -116,7 +91,7 @@ def neighbourhood_spectra(spectra_data, lat_idx, lon_idx):
     return list_of_periods, list_of_coherencies
 
 
-def check_significant_neighbours(spectra_data, lat_idx, lon_idx):
+def check_significant_neighbours(spectra_data, lat_idx, lon_idx, band_days_lower, band_days_upper):
     """
     Find periods of variability that show significant coherency (95% CL) in the central pixel
     and also in at least 3 neighbouring pixels. Return the periods, phase differences,
@@ -230,10 +205,16 @@ def average_intraseasonal_coherency(coords):
         Mean amplitude ratio at frequencies in intraseasonal band 
         where coherency is significant.
     """
+
+    global _global_shared_data
+    spectra = _global_shared_data["spectra"]
+    band_days_lower = _global_shared_data["band_days_lower"]
+    band_days_upper = _global_shared_data["band_days_upper"]
+
     lat, lon = coords
     if spectra[lat, lon] != {}: # check if any output from cross-spectral analysis at pixel
         try:
-            nbhd_test = check_significant_neighbours(spectra, lat, lon)
+            nbhd_test = check_significant_neighbours(spectra, lat, lon, band_days_lower, band_days_upper)
             if nbhd_test is not None:
                 sig_periods = nbhd_test[0]
                 sig_phases = nbhd_test[1]
@@ -280,7 +261,10 @@ def average_intraseasonal_coherency(coords):
                 avg_lag = np.nan
                 avg_amplitude = np.nan
                 lag_error = np.nan
-        except: # Some pixels might not sample enough frequencies for the period band
+        except IndexError:
+            # Catch only the exception that arises if sig_* components are not
+            # indexable.  Some pixels might not sample enough frequencies for
+            # the period band.
             avg_coherency = np.nan
             avg_period = np.nan
             avg_phase = np.nan
@@ -297,7 +281,7 @@ def average_intraseasonal_coherency(coords):
     return avg_coherency, avg_period, avg_phase, avg_lag, lag_error, avg_amplitude
 
 
-def run_neighbourhood_averaging():
+def run_neighbourhood_averaging(lats, lons):
     """
     Get average properties from cross-spectral analysis
     across intraseasonal frequency band for every pixel in tile (includes
@@ -314,9 +298,11 @@ def run_neighbourhood_averaging():
     coords = zip(LAT.ravel(), LON.ravel())
     neighbourhood_averages = {}
     print(f'Start averaging {lats.size * lons.size} pixels')
+
     start = time.time()
     with Pool(processes=4) as pool:
         output = pool.map(average_intraseasonal_coherency, coords, chunksize=1)
+
     output_array = np.array(output)
     neighbourhood_averages['coherency'] = np.reshape(output_array[:, 0], (lats.size, lons.size), order='F')
     neighbourhood_averages['period'] = np.reshape(output_array[:, 1], (lats.size, lons.size), order='F')
@@ -329,6 +315,82 @@ def run_neighbourhood_averaging():
     return neighbourhood_averages
 
 
+def check_filename(filename, varnames):
+    """Check whether you remembered to change the filename for the CSA output... not foolproof..."""
+    components = [w for v in varnames for w in v.split('_')]
+    if any(v not in filename for v in components):
+        print(("WARN: Input filename doesn't match the usual pattern"
+               " suggested by the variable names."))
+
+
+def parse_args():
+    """Read the command line arguments."""
+
+    parser = argparse.ArgumentParser(
+        description="Program for running post-processing spectral analysis."
+    )
+
+    parser.add_argument("--input-file", "-i", type=str, required=True,
+                        help="Name of input pickle file.")
+
+    parser.add_argument("--tile", "-t", type=str, required=True,
+                        help="Name of tile to process.")
+
+    parser.add_argument("--band-lower", "-l", type=float, required=True,
+                        help="Lower bound of spectral periods to include in analysis (days)")
+
+    parser.add_argument("--band-upper", "-u", type=float, required=True,
+                        help="Upper bound of spectral periods to include in analysis (days)")
+
+    parser.add_argument("--output-file", "-o", type=str, required=True,
+                        help="Name of output pickle file.")
+
+    args = parser.parse_args()
+
+    if args.band_lower > args.band_upper:
+        sys.exit(f"ERROR: Spectral bounds error: {args.band_lower} > {args.band_upper}")
+    if not os.path.exists(args.input_file):
+        sys.exit(f"ERROR: input file does not exist: {args.input_file}")
+
+    return args
+
+
+def main():
+
+    args = parse_args()
+
+    input_spectra_filename = args.input_file
+    output_filename = args.output_file
+    band_days_lower = args.band_lower
+    band_days_upper = args.band_upper
+    tile = args.tile
+
+    # Coordinates of tile extent
+    lon_west = -180
+    lon_east = 180
+    tile_lats_south = {'tropics': -35, 'northern': 25, 'southern': -60}
+    tile_lats_north = {'tropics': 35, 'northern': 65, 'southern': -25}
+    lat_south = tile_lats_south[tile]
+    lat_north = tile_lats_north[tile]
+
+    print(input_spectra_filename)
+
+    lats, lons, spectra = read_region_data(input_spectra_filename, tile, lon_west, lon_east, lat_south, lat_north, resolution=0.25)
+    no_csa = ~(spectra == {})
+    print(no_csa.sum(), no_csa.size)
+
+    # Load data into the global dictionary for sharing across the
+    # multiprocessing pool.
+    global _global_shared_data
+    _global_shared_data["spectra"] = spectra
+    _global_shared_data["band_days_lower"] = band_days_lower
+    _global_shared_data["band_days_upper"] = band_days_upper
+
+    neighbourhood_averages = run_neighbourhood_averaging(lats, lons)
+
+    pickle.dump(neighbourhood_averages, open(output_filename, 'wb'))
+
+
 if __name__ == '__main__':
-    neighbourhood_averages = run_neighbourhood_averaging()
-    pickle.dump(neighbourhood_averages, open(f'{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.p', 'wb'))
+    main()
+
