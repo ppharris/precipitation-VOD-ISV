@@ -261,10 +261,10 @@ def average_intraseasonal_coherency(coords):
                 avg_lag = np.nan
                 avg_amplitude = np.nan
                 lag_error = np.nan
-        except IndexError:
-            # Catch only the exception that arises if sig_* components are not
-            # indexable.  Some pixels might not sample enough frequencies for
-            # the period band.
+        except (IndexError, ValueError):
+            # These are raised if (1) sig_* components are not indexable, (2)
+            # Pixels don't sample enough frequencies for the requested period
+            # band.
             avg_coherency = np.nan
             avg_period = np.nan
             avg_phase = np.nan
