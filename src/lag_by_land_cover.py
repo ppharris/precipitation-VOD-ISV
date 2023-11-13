@@ -1,22 +1,24 @@
 import numpy as np
+import os
 import re
 import iris
-from read_data_iris import crop_cube
 import scipy.stats
-from read_csagan_saved_output import read_region_data
 import pickle
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.patches import Rectangle
-from plot_utils import binned_cmap, StripyPatch
 import cartopy.feature as feat
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from mpl_toolkits.axes_grid1 import AxesGrid
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
 from lag_subplots import tile_global_validity, tile_global_from_saved_spectra
+from plot_utils import binned_cmap, StripyPatch
+from read_csagan_saved_output import read_region_data
+from read_data_iris import crop_cube
 
 
 lats_south = {'global': -55, 'southern': -60, 'tropics': -30, 'northern': 30, 'polar': 60}
@@ -74,17 +76,20 @@ def line_break_string(the_string, max_line_length):
         return broken_string
 
 
-def all_season_lags(spectra_save_dir, tile, band_days_lower, band_days_upper, nonzero_only=False):
+def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero_only=False):
+
+    spectra_filt_dir = output_dirs["spectra_filtered"]
+
     seasons = ['MAM', 'JJA', 'SON', 'DJF']
     mask_lag = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.p"
+            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
             for key in neighbourhood_average_spectra.keys():
                 neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
-            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper)
+            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir, season, band_days_lower, band_days_upper)
         if nonzero_only:
             mask_lag_mean = neighbourhood_average_spectra['lag']
             mask_lag_error = neighbourhood_average_spectra['lag_error']
@@ -99,12 +104,15 @@ def all_season_lags(spectra_save_dir, tile, band_days_lower, band_days_upper, no
     return mask_lag
 
 
-def median_95ci_width(spectra_save_dir, tile, band_days_lower, band_days_upper):
+def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper):
+
+    spectra_save_dir = output_dirs["spectra_filtered"]
+
     seasons = ['MAM', 'JJA', 'SON', 'DJF']
     all_lag_errors = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.p"
+            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
             for key in neighbourhood_average_spectra.keys():
                 if tile == 'polar':
@@ -118,14 +126,18 @@ def median_95ci_width(spectra_save_dir, tile, band_days_lower, band_days_upper):
     return np.nanpercentile(lag_errors_stack, 50)
 
 
-def all_season_validity(spectra_save_dir, tile, band_days_lower, band_days_upper):
+def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper):
+
+    spectra_save_dir = output_dirs["spectra"]
+    spectra_filt_dir = output_dirs["spectra_filtered"]
+
     seasons = ['MAM', 'JJA', 'SON', 'DJF']
     validity = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_tropics_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.p"
+            tile_filename = f"{spectra_filt_dir}/spectra_nooverlap_tropics_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
-            original_output_filename = f"{spectra_save_dir}/tropics_IMERG_VOD_spectra_X_{season}_mask_sw_best85.p"
+            original_output_filename = f"{spectra_save_dir}/tropics_IMERG_VOD_spectra_X_{season}_mask_sw_best85.pkl"
             lats, lons, spectra = read_region_data(original_output_filename, tile, -180, 180, lats_south[tile], lats_north[tile])
             no_csa = (spectra == {})
             for key in neighbourhood_average_spectra.keys():
@@ -134,7 +146,7 @@ def all_season_validity(spectra_save_dir, tile, band_days_lower, band_days_upper
                 else:
                     neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
-            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper)
+            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir, season, band_days_lower, band_days_upper)
             no_csa = tile_global_validity(spectra_save_dir, season)
         coherencies = neighbourhood_average_spectra['coherency']
         validity[season] = (coherencies >= 0.7795).astype(int)
@@ -156,7 +168,11 @@ def hist_lc(mask_lag, lc_codes, land_cover_code, density=False):
     return hist
 
 
-def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False):
+def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
+
+    spectra_save_dir = output_dirs["spectra_filtered"]
+    figures_dir = output_dirs["figures"]
+
     fig = plt.figure(figsize=(11, 9))
     gs = fig.add_gridspec(2, 4)
     ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree())
@@ -206,7 +222,7 @@ def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False)
     ax1.tick_params(labelsize=14)
     ax1.tick_params(axis='x', pad=5)
     ax1.set_title("$\\bf{(a)}$" + ' Modal land cover class (Copernicus 2018)', fontsize=14)    
-    lag_2540 = all_season_lags(spectra_save_dir, 'global', 25, 40)
+    lag_2540 = all_season_lags(output_dirs, 'global', 25, 40)
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
     lag_bins = np.arange(-30, 31, 1)
     bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
@@ -224,7 +240,7 @@ def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False)
     else:
         ax2.set_ylabel('number of pixels', fontsize=16)
     if show_95ci:
-        median_lag_error = median_95ci_width(spectra_save_dir, 'global', 25, 40)
+        median_lag_error = median_95ci_width(output_dirs, 'global', 25, 40)
         ylims = ax2.get_ylim()
         y_range = ylims[1]-ylims[0]
         ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
@@ -235,7 +251,7 @@ def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False)
     ax2.text(0.03, 0.9, '$\\bf{(b)}$', fontsize=14, transform=ax2.transAxes)
     ax2.text(0.03, 0.82, u'25\u201340 days', fontsize=14, transform=ax2.transAxes)
     ax2.axvline(0, color='gray', alpha=0.3, zorder=0)
-    lag_4060 = all_season_lags(spectra_save_dir, 'global', 40, 60)
+    lag_4060 = all_season_lags(output_dirs, 'global', 40, 60)
     for land_cover_code in lc_colors.keys():
         hist = hist_lc(lag_4060, lc_codes, land_cover_code, density=density)
         ax3.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5)
@@ -246,7 +262,7 @@ def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False)
     ax3.set_xlim([-30, 30])
     ax3.set_xlabel('phase difference (days)', fontsize=16)
     if show_95ci:
-        median_lag_error = median_95ci_width(spectra_save_dir, 'global', 40, 60)
+        median_lag_error = median_95ci_width(output_dirs, 'global', 40, 60)
         ylims = ax3.get_ylim()
         y_range = ylims[1]-ylims[0]
         ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
@@ -257,20 +273,27 @@ def subplots(spectra_save_dir, density=False, show_95ci=True, all_lc_line=False)
     ax3.text(0.03, 0.9, '$\\bf{(c)}$', fontsize=14, transform=ax3.transAxes)
     ax3.text(0.03, 0.82, u'40\u201360 days', fontsize=14, transform=ax3.transAxes)
     ax3.axvline(0, color='gray', alpha=0.3, zorder=0)
-    save_filename = '../figures/land_cover_subplots_global'
-    if density:
-        save_filename += '_density'
-    if show_95ci:
-        save_filename += '_median95ci'
-    if all_lc_line:
-        save_filename += '_showall'
-    plt.savefig(f'{save_filename}.png', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{save_filename}.pdf', dpi=900, bbox_inches='tight')
-    plt.show()
+
+    labels = (
+        ("density", density),
+        ("median95ci", show_95ci),
+        ("showall", all_lc_line),
+    )
+
+    label2 = "_".join(label for label, switch in labels if switch)
+    label2 = "_" + label2 if label2 else label2
+
+    filename = os.path.join(figures_dir, f"land_cover_subplots_global{label2}")
+
+    plt.savefig(f'{filename}.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{filename}.pdf', dpi=900, bbox_inches='tight')
 
 
+def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper, density=False, show_95ci=True, all_lc_line=False):
 
-def plot_single_band_distribution(spectra_save_dir, band_days_lower, band_days_upper, density=False, show_95ci=True, all_lc_line=False):
+    spectra_save_dir = output_dirs["spectra_filtered"]
+    figures_dir = output_dirs["figures"]
+
     fig, ax = plt.subplots(figsize=(6, 4.5))
     # plt.subplots_adjust(hspace=0.45, wspace=0.4)
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
@@ -280,7 +303,7 @@ def plot_single_band_distribution(spectra_save_dir, band_days_lower, band_days_u
                  'Cropland': '#88CCEE',
                  'Open forest': '#889933',
                  'Closed forest': '#117733'}
-    lag_band = all_season_lags(spectra_save_dir, 'global', band_days_lower, band_days_upper)
+    lag_band = all_season_lags(output_dirs, 'global', band_days_lower, band_days_upper)
     lag_bins = np.arange(-30, 31, 1)
     bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
     for land_cover_code in lc_colors.keys():
@@ -297,7 +320,7 @@ def plot_single_band_distribution(spectra_save_dir, band_days_lower, band_days_u
     else:
         ax.set_ylabel('number of pixels', fontsize=16)
     if show_95ci:
-        median_lag_error = median_95ci_width(spectra_save_dir, 'global', band_days_lower, band_days_upper)
+        median_lag_error = median_95ci_width(output_dirs, 'global', band_days_lower, band_days_upper)
         ylims = ax.get_ylim()
         y_range = ylims[1]-ylims[0]
         ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
@@ -309,27 +332,32 @@ def plot_single_band_distribution(spectra_save_dir, band_days_lower, band_days_u
     ax.set_title(f'{int(band_days_lower)}{endash}{int(band_days_upper)} days', fontsize=14)
     ax.axvline(0, color='gray', alpha=0.3, zorder=0)
     ax.legend(loc='upper left', fontsize=10, framealpha=1)
-    save_filename = f'../figures/land_cover_lag_distribution_global_{int(band_days_lower)}-{int(band_days_upper)}'
-    if density:
-        save_filename += '_density'
-    if show_95ci:
-        save_filename += '_median95ci'
-    if all_lc_line:
-        save_filename += '_showall'
-    plt.savefig(f'{save_filename}.png', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{save_filename}.pdf', dpi=900, bbox_inches='tight')
-    plt.show()
+
+    labels = (
+        ("density", density),
+        ("median95ci", show_95ci),
+        ("showall", all_lc_line),
+    )
+
+    label1 = f"{int(band_days_lower)}-{int(band_days_upper)}"
+    label2 = "_".join(label for label, switch in labels if switch)
+    label2 = "_" + label2 if label2 else label2
+
+    filename = os.path.join(figures_dir, f"land_cover_lag_distribution_global_{label1}{label2}")
+
+    plt.savefig(f'{filename}.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{filename}.pdf', dpi=900, bbox_inches='tight')
 
 
 
-def plot_global_percent_validity(spectra_save_dir, ax, band_days_lower, band_days_upper):
+def plot_global_percent_validity(output_dirs, ax, band_days_lower, band_days_upper):
+
+    number_obs_dir = output_dirs["number_obs"]
+
     land_cover_codes = ['Bare/sparse vegetation','Herbaceous vegetation',
      'Shrubland','Cropland','Open forest', 'Closed forest']
     tile = 'global'
-    number_obs_save_dir = '../data/number_vod_obs'
-    if not os.path.isdir(number_obs_save_dir):
-        raise IOError('Data on inundation masking not yet saved. Run save_all_seasonal_obs_numbers() from inundation_mask_maps.py')
-    validity = all_season_validity(spectra_save_dir, tile, band_days_lower, band_days_upper)
+    validity = all_season_validity(output_dirs, tile, band_days_lower, band_days_upper)
     seasons = validity.keys()
     tile_lat_south = lats_south[tile]
     tile_lat_north = lats_north[tile]
@@ -345,9 +373,9 @@ def plot_global_percent_validity(spectra_save_dir, ax, band_days_lower, band_day
             incoherent_pixels[code] += np.logical_and(validity[season]==0, lc_codes==code).sum()
             no_obs_pixels[code] += np.logical_and(validity[season]==2, lc_codes==code).sum()
             total_pixels[code] += (lc_codes==code).sum()
-            possible_obs = np.load(f'{number_obs_save_dir}/total_possible_obs_{season}.npy')
-            obs_before_mask = np.load(f'{number_obs_save_dir}/total_obs_no_sw_mask_{season}.npy')
-            obs_after_mask = np.load(f'{number_obs_save_dir}/total_obs_sw_mask_{season}.npy')
+            possible_obs = np.load(os.path.join(number_obs_dir, f'total_possible_obs_{season}.npy'))
+            obs_before_mask = np.load(os.path.join(number_obs_dir, f'total_obs_no_sw_mask_{season}.npy'))
+            obs_after_mask = np.load(os.path.join(number_obs_dir, f'total_obs_sw_mask_{season}.npy'))
             percent_before_mask = 100. * obs_before_mask / possible_obs
             percent_after_mask = 100. * obs_after_mask / possible_obs
             removed_by_inundation = np.logical_and(percent_before_mask>=30., percent_after_mask<30.)
@@ -378,10 +406,13 @@ def plot_global_percent_validity(spectra_save_dir, ax, band_days_lower, band_day
         ax.text(i, 102, f'({total_list[i]})', fontsize=10, horizontalalignment='center')
 
 
-def subplots_percent_validity(spectra_save_dir):
+def subplots_percent_validity(output_dirs):
+
+    figures_dir = output_dirs["figures"]
+
     fig, (ax2540, ax4060) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-    plot_global_percent_validity(spectra_save_dir, ax2540, 25, 40)
-    plot_global_percent_validity(spectra_save_dir, ax4060, 40, 60)
+    plot_global_percent_validity(output_dirs, ax2540, 25, 40)
+    plot_global_percent_validity(output_dirs, ax4060, 40, 60)
     plt.subplots_adjust(right=0.8, wspace=0.05)
     color_list = ['#ffd92f', '#EA8294', '#AA4499', '#88CCEE', '#889933', '#117733']
     greys = ['#cccccc']*6
@@ -406,13 +437,12 @@ def subplots_percent_validity(spectra_save_dir):
     ax2540.set_ylabel(r'% of pixels', fontsize=16)
     ax2540.set_title("$\\bf{(a)}$" + u" 25\u201340 days", fontsize=16, pad=25)
     ax4060.set_title("$\\bf{(b)}$" + u" 40\u201360 days", fontsize=16, pad=25)
-    save_filename = f'../figures/validity_percentage_by_land_cover_global_subplots_inundation'
+    save_filename = os.path.join(figures_dir, f'validity_percentage_by_land_cover_global_subplots_inundation')
     plt.savefig(f'{save_filename}.pdf', dpi=600, bbox_inches='tight')
     plt.savefig(f'{save_filename}.png', dpi=600, bbox_inches='tight')
-    plt.show()
 
 
-def median_values(spectra_save_dir, band_days_lower, band_days_upper):
+def median_values(output_dirs, band_days_lower, band_days_upper):
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
     lc_array = np.zeros_like(lc_codes, dtype=int)
     lc_array[lc_codes=='Bare/sparse vegetation'] = 1
@@ -421,7 +451,7 @@ def median_values(spectra_save_dir, band_days_lower, band_days_upper):
     lc_array[lc_codes=='Cropland'] = 4
     lc_array[lc_codes=='Open forest'] = 5
     lc_array[lc_codes=='Closed forest'] = 6
-    lag_band = all_season_lags(spectra_save_dir, 'global', band_days_lower, band_days_upper)
+    lag_band = all_season_lags(output_dirs, 'global', band_days_lower, band_days_upper)
     lc_code_list = ['Bare/sparse vegetation', 'Herbaceous vegetation', 'Shrubland',
                  'Cropland', 'Open forest', 'Closed forest']
     for land_cover_code in lc_code_list:
@@ -435,7 +465,17 @@ def median_values(spectra_save_dir, band_days_lower, band_days_upper):
 
 
 if __name__ == '__main__':
-    spectra_save_dir = '/prj/nceo/bethar/cross_spectral_analysis_results/test/'
-    # subplots(spectra_save_dir, density=True, show_95ci=True, all_lc_line=True)
-    # subplots_percent_validity(spectra_save_dir)
-    plot_single_band_distribution(spectra_save_dir, 40, 60, density=True, show_95ci=True, all_lc_line=False)
+    output_base_dir = "/path/to/output/dir"
+
+    output_dirs = {
+        "base": output_base_dir,
+        "spectra": os.path.join(output_base_dir, "csagan"),
+        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
+        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
+        "figures": os.path.join(output_base_dir, "figures"),
+    }
+
+    subplots(output_dirs, density=True, show_95ci=True, all_lc_line=True)
+    subplots_percent_validity(output_dirs)
+    plot_single_band_distribution(output_dirs, 40, 60,
+                                  density=True, show_95ci=True, all_lc_line=False)
