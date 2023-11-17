@@ -9,6 +9,8 @@ import cartopy
 import cartopy.feature as feat
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import os
+
 from bandpass_filters import *
 from read_csagan_saved_output import read_region_data
 
@@ -27,7 +29,7 @@ px_lats = {'australia_3dlagDJFnonzero': -24.625,
 
 px_lons = {'australia_3dlagDJFnonzero': 125.375,
            'east_africa_20dlagMAM': 31.875,
-           'india_swtestMAM': 76.125}
+           'madagascar_-22dlagMAM': 47.375}
 
 px_period_bands = {'australia_3dlagDJFnonzero': 'lower',
                    'east_africa_20dlagMAM': 'upper',
@@ -40,7 +42,10 @@ px_seasons = {'australia_3dlagDJFnonzero': 'DJF',
 vod_colour ='#F93434'
 
 
-def pixel_lag_data(px_desc):
+def pixel_lag_data(output_dirs, px_desc):
+
+    lag_data_dir = output_dirs["lag_data"]
+
     lats = np.arange(-60,80,0.25) + 0.5*0.25
     lons = np.arange(-180,180,0.25) + 0.5*0.25
     lat_idx = np.where(lats==px_lats[px_desc])[0][0]
@@ -55,24 +60,24 @@ def pixel_lag_data(px_desc):
         upper = 60
     else:
         raise KeyError('Period band must be lower (25-40) or upper (40-60)')
-    lags = np.load(f'../data/lag_subplots_data/lag_{season}_{int(lower)}-{int(upper)}.npy')
-    lag_errors = np.load(f'../data/lag_subplots_data/lag_error_{season}_{int(lower)}-{int(upper)}.npy')
-    periods = np.load(f'../data/lag_subplots_data/period_{season}_{int(lower)}-{int(upper)}.npy')
+    lags = np.load(os.path.join(lag_data_dir, f'lag_{season}_{int(lower)}-{int(upper)}.npy'))
+    lag_errors = np.load(os.path.join(lag_data_dir, f'lag_error_{season}_{int(lower)}-{int(upper)}.npy'))
+    periods = np.load(os.path.join(lag_data_dir, f'period_{season}_{int(lower)}-{int(upper)}.npy'))
     lag_data = {'lag': lags[lat_idx, lon_idx], 'lag_error': lag_errors[lat_idx,lon_idx], 'period': periods[lat_idx,lon_idx]}
     return lag_data
 
 
-def read_time_series(px_desc):
-    save_directory = f'../data/pixel_time_series/{px_desc}'
-    imerg_anom = np.load(f'{save_directory}/imerg_anom_{px_desc}.npy')
-    vod_anom = np.load(f'{save_directory}/vod_anom_{px_desc}.npy')
+def read_time_series(output_dirs, px_desc):
+    save_directory = output_dirs["pixel_time_series"]
+    imerg_anom = np.load(os.path.join(save_directory, f'imerg_anom_{px_desc}.npy'))
+    vod_anom = np.load(os.path.join(save_directory, f'vod_anom_{px_desc}.npy'))
     base_date = datetime(2000, 1, 1)
     dates = [base_date + timedelta(days=n) for n in range(vod_anom.size)]
     return dates, imerg_anom, vod_anom
 
 
-def time_series_mask_dates(px_desc):
-    dates, imerg_anom, vod_anom = read_time_series(px_desc)
+def time_series_mask_dates(output_dirs, px_desc):
+    dates, imerg_anom, vod_anom = read_time_series(output_dirs, px_desc)
     start_date_list = start_dates[px_desc]
     end_date_list = end_dates[px_desc]
     all_imerg = np.ones_like(imerg_anom)*np.nan
@@ -143,8 +148,8 @@ def filter_vod_seasons(px_desc, dates, all_imerg, all_vod, window_size=5):
     return filtered_dates, filtered_vod
 
 
-def plot_time_series_multiyear(px_desc, ax_to_plot, label_letter):
-    dates, imerg, vod = time_series_mask_dates(px_desc)
+def plot_time_series_multiyear(output_dirs, px_desc, ax_to_plot, label_letter):
+    dates, imerg, vod = time_series_mask_dates(output_dirs, px_desc)
     axis_start_points = start_dates[px_desc]
     axis_end_points = end_dates[px_desc]
     bax_xlims = tuple([(s, e) for s, e in zip(axis_start_points, axis_end_points)])
@@ -179,7 +184,7 @@ def plot_time_series_multiyear(px_desc, ax_to_plot, label_letter):
     ax2.axs[-1].tick_params(axis='y', colors=vod_colour)
     ax2.big_ax.yaxis.set_label_position("right")
     ax2.big_ax.set_ylabel('VOD anomaly\n(unitless)', fontsize=12, labelpad=50, color=vod_colour)
-    px_lag_data = pixel_lag_data(px_desc)
+    px_lag_data = pixel_lag_data(output_dirs, px_desc)
     px_lag = px_lag_data['lag']
     px_lag_error = px_lag_data['lag_error']
     px_period = px_lag_data['period']
@@ -192,8 +197,8 @@ def plot_time_series_multiyear(px_desc, ax_to_plot, label_letter):
     bax.big_ax.set_title(f'({label_letter}) {px_lats[px_desc]}{deg}N, {px_lons[px_desc]}{deg}E', fontsize=14, color='k')
 
 
-def plot_time_series_multiyear_filtered(px_desc, ax_to_plot, label_letter, window_size=5):
-    dates, imerg, vod = time_series_mask_dates(px_desc)
+def plot_time_series_multiyear_filtered(output_dir, px_desc, ax_to_plot, label_letter, window_size=5):
+    dates, imerg, vod = time_series_mask_dates(output_dir, px_desc)
     filtered_imerg = filter_imerg_seasons(px_desc, imerg)
     filtered_dates, filtered_vod = filter_vod_seasons(px_desc, dates, imerg, vod, 
                                                       window_size=window_size)
@@ -232,7 +237,7 @@ def plot_time_series_multiyear_filtered(px_desc, ax_to_plot, label_letter, windo
     ax2.axs[-1].tick_params(axis='y', colors=vod_colour)
     ax2.big_ax.yaxis.set_label_position("right")
     ax2.big_ax.set_ylabel('VOD anomaly\n(unitless)', fontsize=12, labelpad=52, color=vod_colour)
-    px_lag_data = pixel_lag_data(px_desc)
+    px_lag_data = pixel_lag_data(output_dirs, px_desc)
     px_lag = px_lag_data['lag']
     px_lag_error = px_lag_data['lag_error']
     px_period = px_lag_data['period']
@@ -266,7 +271,10 @@ def map_of_pixels(pixels_to_plot, ax):
     ax.set_title('$\\bf{(a)}$ Example time series locations', fontsize=14) 
 
 
-def all_pixels(window_size=7):
+def all_pixels(output_dirs, window_size=7):
+
+    figures_dir = output_dirs["figures"]
+
     pixels_to_plot = ['east_africa_20dlagMAM', 'madagascar_-22dlagMAM', 'australia_3dlagDJFnonzero']
     number_pixels = len(pixels_to_plot)
     alphabet = string.ascii_lowercase[1:number_pixels+1]
@@ -276,12 +284,23 @@ def all_pixels(window_size=7):
     map_of_pixels(pixels_to_plot, ax_map)
     i = 1
     for pixel_desc, pixel_label in zip(pixels_to_plot, alphabet):
-        plot_time_series_multiyear_filtered(pixel_desc, gs[i, 0], pixel_label, window_size=window_size)
+        plot_time_series_multiyear_filtered(output_dirs, pixel_desc, gs[i, 0], pixel_label, window_size=window_size)
         i += 1
-    plt.savefig(f'../figures/example_pixel_time_series_filtered_bin{int(window_size)}.pdf', bbox_inches='tight')
-    plt.savefig(f'../figures/example_pixel_time_series_filtered_bin{int(window_size)}.png', bbox_inches='tight')
-    plt.show()
+    plt.savefig(os.path.join(figures_dir, f'example_pixel_time_series_filtered_bin{int(window_size)}.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(figures_dir, f'example_pixel_time_series_filtered_bin{int(window_size)}.png'), bbox_inches='tight')
 
 
 if __name__ == '__main__':
-    all_pixels(window_size=7)
+
+    output_base_dir = "/path/to/output/dir"
+
+    output_dirs = {
+        "base": output_base_dir,
+        "spectra": os.path.join(output_base_dir, "csagan"),
+        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
+        "lag_data": os.path.join(output_base_dir, "lag_subplots_data"),
+        "pixel_time_series": os.path.join(output_base_dir, "data_pixel_time_series"),
+        "figures": os.path.join(output_base_dir, "figures"),
+    }
+
+    all_pixels(output_dirs, window_size=7)

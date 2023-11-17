@@ -3,7 +3,12 @@ channels:
   - conda-forge
 dependencies:
   - iris
+  - matplotlib<3.8  # required to work with brokenaxes 0.5.0.
   - python=3
   - psutil
   - tqdm
   - xarray
+  - pip:
+    # Only 0.4.2 available from conda-forge, which conflicts with newer
+    # matplotlib versions.
+    - brokenaxes==0.5.0

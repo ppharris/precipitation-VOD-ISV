@@ -1,8 +1,9 @@
-import os
+`import os
 import time
 import numpy as np
 import numpy.ma as ma
 import xarray as xr
+
 from read_data_iris import read_data_all_years
 
 
@@ -46,22 +47,35 @@ def get_imerg_vod_pixel(px_lat, px_lon):
     return imerg_pad, imerg_anom_pad, imerg_sqrt_anom_pad, vod_px, vod_anom_px
 
 
-def save_pixel_time_series(px_lat, px_lon, px_desc):
+def save_pixel_time_series(output_dirs, px_lat, px_lon, px_desc):
+
+    dir_out = output_dirs["pixel_time_series"]
+
     print(f'saving {px_desc}')
     start = time.time()
     imerg, imerg_anom, imerg_sqrt_anom, vod, vod_anom = get_imerg_vod_pixel(px_lat, px_lon)
-    save_directory = f'../data/pixel_time_series/{px_desc}'
-    os.system(f'mkdir -p {save_directory}')
-    np.save(f'{save_directory}/imerg_{px_desc}.npy', ma.filled(imerg, np.nan))
-    np.save(f'{save_directory}/imerg_anom_{px_desc}.npy', imerg_anom)
-    np.save(f'{save_directory}/imerg_sqrt_anom_{px_desc}.npy', imerg_sqrt_anom)
-    np.save(f'{save_directory}/vod_{px_desc}.npy', ma.filled(vod, np.nan))
-    np.save(f'{save_directory}/vod_anom_{px_desc}.npy', vod_anom)
+    np.save(os.path.join(dir_out, f'imerg_{px_desc}.npy'), ma.filled(imerg, np.nan))
+    np.save(os.path.join(dir_out, f'imerg_anom_{px_desc}.npy'), imerg_anom)
+    np.save(os.path.join(dir_out, f'imerg_sqrt_anom_{px_desc}.npy'), imerg_sqrt_anom)
+    np.save(os.path.join(dir_out, f'vod_{px_desc}.npy'), ma.filled(vod, np.nan))
+    np.save(os.path.join(dir_out, f'vod_anom_{px_desc}.npy'), vod_anom)
     end = time.time()
     print(f'saved in {(end-start)/60.:.2f} minutes')
 
 
 if __name__ == '__main__':
-    save_pixel_time_series(-24.625, 125.375, 'australia_3dlagDJFnonzero')
-    save_pixel_time_series(3.875, 31.875, 'east_africa_20dlagMAM')
-    save_pixel_time_series(-18.625, 47.375, 'madagascar_-22dlagMAM')
+
+    output_base_dir = "/path/to/output/dir"
+
+    output_dirs = {
+        "base": output_base_dir,
+        "spectra": os.path.join(output_base_dir, "csagan"),
+        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
+        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
+        "pixel_time_series": os.path.join(output_base_dir, "data_pixel_time_series"),
+        "figures": os.path.join(output_base_dir, "figures"),
+    }
+
+    save_pixel_time_series(output_dirs, -24.625, 125.375, 'australia_3dlagDJFnonzero')
+    save_pixel_time_series(output_dirs, 3.875, 31.875, 'east_africa_20dlagMAM')
+    save_pixel_time_series(output_dirs, -18.625, 47.375, 'madagascar_-22dlagMAM')
