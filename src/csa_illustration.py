@@ -61,12 +61,12 @@ def all_time_series():
     return precip_time_series, vod_time_series
 
 
-def get_spectra(precip, vod):
+def get_spectra(exe_filename, wrk_dir, precip, vod):
     base_date = datetime(2000, 1, 1)
     dates = [base_date + timedelta(days=n) for n in range(vod.size)]
     decimal_dates = np.array([datetime_to_decimal_year(d) for d in dates])
-    csagan = '/users/global/bethar/python/cross-spectral-veg-precip/csagan/csagan-multiprocess.x'
-    spectra = reference_response_spectra(csagan, 0, 'IMERG', 'VOD', decimal_dates, precip, vod)
+    spectra = reference_response_spectra(exe_filename, wrk_dir, 0, 'IMERG', 'VOD',
+                                         decimal_dates, precip, vod)
     return spectra
 
 
@@ -163,7 +163,7 @@ def plot_phase_difference(spectra, ax=None):
     ax.tick_params(labelsize=12)
 
 
-def subplots(precip, vod, spectra):
+def subplots(figures_dir, precip, vod, spectra):
     fig = plt.figure(figsize=(12, 6))
     gs = gridspec.GridSpec(4, 2, hspace=0.25, wspace=0.41)
     annual_cycle_ax = plt.subplot(gs[0, 0])
@@ -191,12 +191,23 @@ def subplots(precip, vod, spectra):
     isv_ax.set_title('intraseasonal variability', fontsize=12, pad=0)
     noise_ax.set_title('white noise', fontsize=12, pad=0)
     time_series_ax.set_title('total plus data gaps', fontsize=12, pad=0)
-    plt.savefig('../figures/csagan_illustration/fig1/csa_illustration_missing_data_newcolours.png', bbox_inches='tight', dpi=400)
-    plt.savefig('../figures/csagan_illustration/fig1/csa_illustration_missing_data_newcolours.pdf', bbox_inches='tight', dpi=600)
+
+    file_out = os.path.join(figures_dir, "csa_illustration_missing_data_newcolours")
+    plt.savefig(f'{file_out}.png', bbox_inches='tight', dpi=400)
+    plt.savefig(f'{file_out}.pdf', bbox_inches='tight', dpi=600)
     plt.show()
 
 
-if __name__ == '__main__':
+def main():
+
+    exe_filename = "/path/to/csagan.exe"
+    figures_dir = "/path/for/output/files"
+    wrk_dir = "/path/for/work/files"
+
     precip, vod = all_time_series()
-    spectra = get_spectra(precip['masked_total'], vod['masked_total'])
-    subplots(precip, vod, spectra)
+    spectra = get_spectra(exe_filename, wrk_dir, precip['masked_total'], vod['masked_total'])
+    subplots(figures_dir, precip, vod, spectra)
+
+
+if __name__ == '__main__':
+    main()
