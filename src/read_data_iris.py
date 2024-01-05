@@ -66,6 +66,14 @@ def roll_cube_longitude(cube):
     return cube
 
 
+def _rename_coords(cube):
+    """Give horizontal coords CF-compliant names."""
+    for c in cube.coords("lat"):
+        c.rename("latitude")
+    for c in cube.coords("lon"):
+        c.rename("longitude")
+
+
 def fix_coords(cube):
     calendar = cube.coord('time').units.calendar
     common_time_unit = cf_units.Unit('days since 1970-01-01', calendar=calendar)
@@ -199,7 +207,7 @@ def detrend_cube(cube, dimension='time'):
     detrended = da.apply_along_axis(
         detrend_missing_values,
         axis=axis,
-        arr=cube.lazy_data().rechunk([45, 500, 500]),
+        arr=cube.lazy_data(),
         shape=(cube.shape[axis],)
     )
     return cube.copy(detrended)
@@ -264,6 +272,7 @@ def monthly_anomalies_normalised(cube, detrend=False):
     calendar = anomalies.coord('time').units.calendar
     common_time_unit = cf_units.Unit('days since 1970-01-01', calendar=calendar)
     anomalies.coord('time').convert_units(common_time_unit)
+    _rename_coords(anomalies)
     for coord_key in ['time', 'latitude', 'longitude']:
         anomalies.coord(coord_key).bounds = None
         anomalies.coord(coord_key).guess_bounds()
@@ -291,6 +300,7 @@ def daily_anomalies_normalised(cube, detrend=False):
     calendar = anomalies.coord('time').units.calendar
     common_time_unit = cf_units.Unit('days since 1970-01-01', calendar=calendar)
     anomalies.coord('time').convert_units(common_time_unit)
+    _rename_coords(anomalies)
     for coord_key in ['time', 'latitude', 'longitude']:
         anomalies.coord(coord_key).bounds = None
         anomalies.coord(coord_key).guess_bounds()
