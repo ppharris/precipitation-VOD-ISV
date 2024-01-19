@@ -18,7 +18,6 @@ import time
 import sys
 import pickle
 import itertools
-# from tqdm import tqdm
 from multiprocessing import Pool
 
 from read_csagan_saved_output import read_region_data

@@ -1,14 +1,13 @@
-from read_data_iris import *
-import iris.coord_categorisation
-from tqdm import tqdm
-from bandpass_filters import bandpass_filter_missing_data
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import cartopy.feature as feat
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import iris.coord_categorisation
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from tqdm import tqdm
+
+from read_data_iris import crop_cube, read_data_all_years
+from bandpass_filters import bandpass_filter_missing_data
 from plot_utils import binned_cmap
 
 

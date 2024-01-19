@@ -1,18 +1,14 @@
-import string
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.dates import AutoDateLocator
-from dateutil.relativedelta import relativedelta
 from brokenaxes import brokenaxes
-from datetime import datetime, timedelta
-import cartopy
-import cartopy.feature as feat
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+from dateutil.relativedelta import relativedelta
+from datetime import datetime, timedelta
+import numpy as np
+import matplotlib.pyplot as plt
 import os
+import string
 
-from bandpass_filters import *
-from read_csagan_saved_output import read_region_data
+from bandpass_filters import bandpass_filter_missing_data
 
 
 start_dates = {'australia_3dlagDJFnonzero': (datetime(2007, 12, 1), datetime(2010, 12, 1), datetime(2013,12,1)),

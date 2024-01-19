@@ -1,20 +1,20 @@
+import argparse
+import calendar
+from datetime import datetime
+from multiprocessing import Pool, RawArray
+from netCDF4 import Dataset
 import numpy as np
 import numpy.ma as ma
-import multiprocessing
-from multiprocessing import Pool, RawArray
-import psutil
-import time
-import calendar
-from tqdm import tqdm
+import os
 from pathlib import Path
 import pickle
-import os
 import subprocess
 from subprocess import run
-from netCDF4 import Dataset
+import time
+
 from read_data_iris import read_data_all_years, read_land_sea_mask
-from datetime_utils import *
-import argparse
+from datetime_utils import decimal_year_to_datetime
+
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).
 # csagan is run separately for each pixel to allow for each pixel having missing data

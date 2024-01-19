@@ -1,10 +1,12 @@
+import iris
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-from read_data_iris import *
-from datetime_utils import *
 import sys
+
+from datetime_utils import days_since_1970_to_decimal_year, decimal_year_to_datetime
+from read_data_iris import read_data_all_years
 
 
 def filter_jumps_monthly(vod_tile, allowed_jump_stdevs=2):

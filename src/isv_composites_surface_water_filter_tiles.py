@@ -1,13 +1,12 @@
 from tqdm import tqdm
 import numpy as np
-import numpy.ma as ma
 import matplotlib.pyplot as plt
 import pickle
 import iris
-from read_data_iris import crop_cube
-import gc
 import string
 import os
+
+from read_data_iris import crop_cube
 
 
 def land_cover_full_name(land_cover):
@@ -57,7 +56,6 @@ def time_series_around_date(data_grid, lat_idx, lon_idx, date_idx, days_range=60
 
 
 def composite_events_all_valid(events, data_grid, imerg_anom, vod_anom, sm_anom, days_range=60, existing_composite=None, existing_n=None):
-    gc.disable()
     days_around = np.arange(-days_range, days_range+1)
     if existing_composite is not None:
         composite = existing_composite
@@ -88,7 +86,6 @@ def composite_events_all_valid(events, data_grid, imerg_anom, vod_anom, sm_anom,
 
 
 def composite_events(events, data_grid, days_range=60, existing_composite=None, existing_n=None):
-    gc.disable()
     days_around = np.arange(-days_range, days_range+1)
     if existing_composite is not None:
         composite = existing_composite

@@ -9,11 +9,8 @@ from cartopy.mpl.geoaxes import GeoAxes
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import AxesGrid
 
-from lag_by_land_cover import copernicus_land_cover
-from plot_utils import binned_cmap
 from read_data_iris import read_data_all_years
 
 

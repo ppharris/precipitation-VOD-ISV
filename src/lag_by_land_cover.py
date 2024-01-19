@@ -4,16 +4,10 @@ import re
 import iris
 import scipy.stats
 import pickle
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-from matplotlib.ticker import FormatStrFormatter
 from matplotlib.patches import Rectangle
-import cartopy.feature as feat
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-from mpl_toolkits.axes_grid1 import AxesGrid
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from lag_subplots import tile_global_validity, tile_global_from_saved_spectra
 from plot_utils import binned_cmap, StripyPatch

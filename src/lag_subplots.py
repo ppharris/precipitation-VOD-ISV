@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import matplotlib.ticker as mticker
 from tqdm import tqdm
 import os
 import sys
