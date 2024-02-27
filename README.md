@@ -16,10 +16,11 @@ The code can be used to perform the cross-spectral analysis described in Section
 - Compile csagan (requires linking to netCDF libraries)
 - Run bash script [csa_multiprocess_tiles](src/csa_multiprocess_tiles). This will run the cross-spectral analysis for all pixels/seasons, saving the results in three latitude-band tiles for each season. The save directory is set in [csagan_multiprocess.py](src/csagan_multiprocess.py). A single season takes approximately 8 hours to process and produces ~3--5 GB of saved data.
 - Run [significant_coherent_intraseasonal_relationships.py](src/significant_coherent_intraseasonal_relationships.py) for each tile ('tropics', 'northern', 'southern'), season and frequency-of-variability band. These variables have to be set at the top of the .py file before running. This computes and saves details of the coherent relationships that are 95% significant based on the 3-neighbour condition described in Section 2 of the paper.
+- Run [lag_subplots_calc.py](src/lag_subplots_calc.py) to prepare data for Fig 2.
 
 # Figures
 - **Figure 1**: produced by running [csa_illustration.py](src/csa_illustration.py) (requires Lomb-Scargle Fortran code)
-- **Figure 2**: [lag_subplots.py](src/lag_subplots.py)
+- **Figure 2**: [lag_subplots_plot.py](src/lag_subplots_plot.py)
 - **Figure 3** and **Figure S6**: [lag_by_land_cover.py](src/lag_by_land_cover.py)
 - **Figure 4**: first run [isv_events_surface_water_tiles.py](src/isv_events_surface_water_tiles.py) to save standardised anomalies of the observed variables and save the dates of intraseasonal precipitation events at each pixel. Then [isv_composites_surface_water_filter_tiles.py](src/isv_composites_surface_water_filter_tiles.py) generates the figure.
 - **Figure S1**: Created using function filter_pixel() in [vod_surface_water_filter_best.py](src/vod_surface_water_filter_best.py) with kwarg demo_figure=True
