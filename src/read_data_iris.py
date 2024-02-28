@@ -25,7 +25,7 @@ def check_dirs(dirs, input_names=(), output_names=()):
     for name in output_names:
         path = dirs[name]
         if not os.path.isdir(path):
-            os.makedir(path)
+            os.mkdir(path)
 
 
 def data_directory(dataset, band=None, regridded=False, mask_surface_water=False):
