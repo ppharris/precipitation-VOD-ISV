@@ -10,9 +10,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import os
-import sys
 
 from read_csagan_saved_output import read_region_data
+from read_data_iris import check_dirs
 
 
 def global_plots_mean_estimate(output_dirs):
@@ -229,24 +229,6 @@ def lag_sign_stats(output_dirs, season, band_days_lower, band_days_upper):
     print(f'positive: {pos_ci_px}')
     print(f'negative: {neg_ci_px}')
     print(f'sign uncertain: {cross_ci_px}')
-
-
-def check_dirs(dirs, input_names=(), output_names=()):
-    """Ensure that the specified input and output directories exist.
-
-    Missing input directories abort with error, missing output directories are
-    created.
-
-    """
-    for name in input_names:
-        path = output_dirs[name]
-        if not os.path.isdir(path):
-            sys.exit(f"ERROR: Input directory {path} does not exist.")
-
-    for name in output_names:
-        path = output_dirs[name]
-        if not os.path.isdir(path):
-            os.makedir(path)
 
 
 if __name__ == '__main__':

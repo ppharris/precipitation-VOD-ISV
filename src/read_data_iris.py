@@ -10,6 +10,24 @@ from tqdm import tqdm
 from scipy.stats import linregress
 
 
+def check_dirs(dirs, input_names=(), output_names=()):
+    """Ensure that the specified input and output directories exist.
+
+    Missing input directories abort with error, missing output directories are
+    created.
+
+    """
+    for name in input_names:
+        path = dirs[name]
+        if not os.path.isdir(path):
+            sys.exit(f"ERROR: Input directory {path} does not exist.")
+
+    for name in output_names:
+        path = dirs[name]
+        if not os.path.isdir(path):
+            os.makedir(path)
+
+
 def data_directory(dataset, band=None, regridded=False, mask_surface_water=False):
     if dataset == 'VOD' and band is None:
         raise ValueError('Must supply band for VOD data')

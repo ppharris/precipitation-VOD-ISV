@@ -2,9 +2,9 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 import os
-import sys
 
 from read_csagan_saved_output import read_region_data
+from read_data_iris import check_dirs
 
 
 def tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper):
@@ -61,24 +61,6 @@ def save_lags_to_file(output_dirs):
         np.save(os.path.join(lag_data_dir, f'no_csa_{season}_{lower}-{upper}.npy'), no_csa)
 
     return
-
-
-def check_dirs(dirs, input_names=(), output_names=()):
-    """Ensure that the specified input and output directories exist.
-
-    Missing input directories abort with error, missing output directories are
-    created.
-
-    """
-    for name in input_names:
-        path = output_dirs[name]
-        if not os.path.isdir(path):
-            sys.exit(f"ERROR: Input directory {path} does not exist.")
-
-    for name in output_names:
-        path = output_dirs[name]
-        if not os.path.isdir(path):
-            os.makedir(path)
 
 
 if __name__ == '__main__':
