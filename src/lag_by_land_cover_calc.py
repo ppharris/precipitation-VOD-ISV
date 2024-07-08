@@ -12,7 +12,7 @@ from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from lag_subplots_calc import tile_global_validity, tile_global_from_saved_spectra
 from plot_utils import binned_cmap, StripyPatch
 from read_csagan_saved_output import read_region_data
-from read_data_iris import crop_cube
+from read_data_iris import crop_cube, check_dirs
 
 
 lats_south = {'global': -55, 'southern': -60, 'tropics': -30, 'northern': 30, 'polar': 60}
@@ -70,6 +70,19 @@ def line_break_string(the_string, max_line_length):
         return broken_string
 
 
+def load_num_obs(number_obs_dir):
+
+    num_obs = {}
+    for season in ('MAM', 'JJA', 'SON', 'DJF'):
+        season_obs = {
+            "num_total": np.load(os.path.join(number_obs_dir, f'total_possible_obs_{season}.npy')),
+            "num_before": np.load(os.path.join(number_obs_dir, f'total_obs_no_sw_mask_{season}.npy')),
+            "num_after": np.load(os.path.join(number_obs_dir, f'total_obs_sw_mask_{season}.npy')),
+        }
+        num_obs[season] = season_obs
+    return num_obs
+
+
 def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero_only=False):
 
     spectra_filt_dir = output_dirs["spectra_filtered"]
@@ -80,6 +93,7 @@ def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero
         if tile != 'global':
             tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
+            # Subset array for some reason?
             for key in neighbourhood_average_spectra.keys():
                 neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
@@ -95,6 +109,7 @@ def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero
             mask_lag[season] = lags_nonzero_only
         else:
             mask_lag[season] = neighbourhood_average_spectra['lag']
+    # mask_lag is an ndarray.
     return mask_lag
 
 
@@ -162,9 +177,8 @@ def hist_lc(mask_lag, lc_codes, land_cover_code, density=False):
     return hist
 
 
-def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
+def subplots(output_dirs, lag_data, median_data, density=False, show_95ci=True, all_lc_line=False):
 
-    spectra_save_dir = output_dirs["spectra_filtered"]
     figures_dir = output_dirs["figures"]
 
     fig = plt.figure(figsize=(11, 9))
@@ -173,7 +187,9 @@ def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
     ax2 = fig.add_subplot(gs[1, 0:2])
     ax3 = fig.add_subplot(gs[1, 2:])
     plt.subplots_adjust(hspace=0.45, wspace=0.4)
+
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
+
     lc_array = np.zeros_like(lc_codes, dtype=int)
     lc_array[lc_codes=='Bare/sparse vegetation'] = 1
     lc_array[lc_codes=='Herbaceous vegetation'] = 2
@@ -181,6 +197,7 @@ def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
     lc_array[lc_codes=='Cropland'] = 4
     lc_array[lc_codes=='Open forest'] = 5
     lc_array[lc_codes=='Closed forest'] = 6
+
     lons = np.arange(-180, 180, 0.25) + 0.125
     lats = np.arange(-55, 55, 0.25) + 0.125
     lon_bounds = np.hstack((lons - 0.5*0.25, np.array([lons[-1]+0.5*0.25])))
@@ -196,6 +213,7 @@ def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
     lc_cmap, lc_norm = binned_cmap(levels, 'tab10', fix_colours=[(i, c) for i, c in enumerate(color_list)])
     lc_cmap.set_bad('w')
     lc_cmap.set_under('w')
+
     p = ax1.pcolormesh(lon_bounds, lat_bounds, lc_array, transform=ccrs.PlateCarree(), 
                        cmap=lc_cmap, norm=lc_norm, rasterized=True)
     fig_left = ax2.get_position().x0
@@ -216,57 +234,43 @@ def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
     ax1.tick_params(labelsize=14)
     ax1.tick_params(axis='x', pad=5)
     ax1.set_title("$\\bf{(a)}$" + ' Modal land cover class (Copernicus 2018)', fontsize=14)    
-    lag_2540 = all_season_lags(output_dirs, 'global', 25, 40)
+
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
+
     lag_bins = np.arange(-30, 31, 1)
     bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
-    for land_cover_code in lc_colors.keys():
-        hist = hist_lc(lag_2540, lc_codes, land_cover_code, density=density)
-        ax2.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5)
-    if all_lc_line:
-        hist = hist_lc(lag_2540, lc_codes, 'all', density=density)
-        ax2.plot(bin_centres, hist, '--', color='k', ms=0, linewidth=1)
-    ax2.tick_params(labelsize=14)
-    ax2.set_xlim([-30, 30])
-    ax2.set_xlabel('phase difference (days)', fontsize=16)
-    if density:
-        ax2.set_ylabel('pdf', fontsize=16)
-    else:
-        ax2.set_ylabel('number of pixels', fontsize=16)
-    if show_95ci:
-        median_lag_error = median_95ci_width(output_dirs, 'global', 25, 40)
-        ylims = ax2.get_ylim()
-        y_range = ylims[1]-ylims[0]
-        ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
-        line_middle = [27.-median_lag_error, ylims[0]+0.92625*y_range]
-        ax2.add_artist(ci_line)
-        ax2.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
-        ax2.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax2.transData, ha='center')
-    ax2.text(0.03, 0.9, '$\\bf{(b)}$', fontsize=14, transform=ax2.transAxes)
-    ax2.text(0.03, 0.82, u'25\u201340 days', fontsize=14, transform=ax2.transAxes)
-    ax2.axvline(0, color='gray', alpha=0.3, zorder=0)
-    lag_4060 = all_season_lags(output_dirs, 'global', 40, 60)
-    for land_cover_code in lc_colors.keys():
-        hist = hist_lc(lag_4060, lc_codes, land_cover_code, density=density)
-        ax3.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5)
-    if all_lc_line:
-        hist = hist_lc(lag_4060, lc_codes, 'all', density=density)
-        ax3.plot(bin_centres, hist, '--', color='k', ms=0, linewidth=1)
-    ax3.tick_params(labelsize=14)
-    ax3.set_xlim([-30, 30])
-    ax3.set_xlabel('phase difference (days)', fontsize=16)
-    if show_95ci:
-        median_lag_error = median_95ci_width(output_dirs, 'global', 40, 60)
-        ylims = ax3.get_ylim()
-        y_range = ylims[1]-ylims[0]
-        ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
-        line_middle = [27.-median_lag_error, ylims[0]+0.92625*y_range]
-        ax3.add_artist(ci_line)
-        ax3.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
-        ax3.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax3.transData, ha='center')
-    ax3.text(0.03, 0.9, '$\\bf{(c)}$', fontsize=14, transform=ax3.transAxes)
-    ax3.text(0.03, 0.82, u'40\u201360 days', fontsize=14, transform=ax3.transAxes)
-    ax3.axvline(0, color='gray', alpha=0.3, zorder=0)
+
+    for ax, letter, (band, lags) in zip([ax2, ax3], "bc", lag_data.items()):
+        for land_cover_code in lc_colors.keys():
+            hist = hist_lc(lags, lc_codes, land_cover_code, density=density)
+            ax.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5)
+
+        if all_lc_line:
+            hist = hist_lc(lags, lc_codes, 'all', density=density)
+            ax.plot(bin_centres, hist, '--', color='k', ms=0, linewidth=1)
+
+        ax.tick_params(labelsize=14)
+        ax.set_xlim([-30, 30])
+        ax.set_xlabel('phase difference (days)', fontsize=16)
+
+        if density:
+            ax.set_ylabel('pdf', fontsize=16)
+        else:
+            ax.set_ylabel('number of pixels', fontsize=16)
+
+        if show_95ci:
+            median_lag_error = median_data[band]
+            ylims = ax.get_ylim()
+            y_range = ylims[1]-ylims[0]
+            ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
+            line_middle = [27.-median_lag_error, ylims[0]+0.92625*y_range]
+            ax.add_artist(ci_line)
+            ax.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
+            ax.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax.transData, ha='center')
+
+        ax.text(0.03, 0.9, f'({letter})', fontsize=14, fontweight="bold", transform=ax.transAxes)
+        ax.text(0.03, 0.82, f'{band[0]}\u2013{band[1]} days', fontsize=14, transform=ax.transAxes)
+        ax.axvline(0, color='gray', alpha=0.3, zorder=0)
 
     labels = (
         ("density", density),
@@ -283,9 +287,10 @@ def subplots(output_dirs, density=False, show_95ci=True, all_lc_line=False):
     plt.savefig(f'{filename}.pdf', dpi=900, bbox_inches='tight')
 
 
-def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper, density=False, show_95ci=True, all_lc_line=False):
+def plot_single_band_distribution(output_dirs, lag_data, median_data, band, density=False, show_95ci=True, all_lc_line=False):
 
-    spectra_save_dir = output_dirs["spectra_filtered"]
+    lag_band = lag_data[band]
+
     figures_dir = output_dirs["figures"]
 
     fig, ax = plt.subplots(figsize=(6, 4.5))
@@ -297,7 +302,6 @@ def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper,
                  'Cropland': '#88CCEE',
                  'Open forest': '#889933',
                  'Closed forest': '#117733'}
-    lag_band = all_season_lags(output_dirs, 'global', band_days_lower, band_days_upper)
     lag_bins = np.arange(-30, 31, 1)
     bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
     for land_cover_code in lc_colors.keys():
@@ -314,7 +318,7 @@ def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper,
     else:
         ax.set_ylabel('number of pixels', fontsize=16)
     if show_95ci:
-        median_lag_error = median_95ci_width(output_dirs, 'global', band_days_lower, band_days_upper)
+        median_lag_error = median_data[band]
         ylims = ax.get_ylim()
         y_range = ylims[1]-ylims[0]
         ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
@@ -322,8 +326,8 @@ def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper,
         ax.add_artist(ci_line)
         ax.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
         ax.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax.transData, ha='center')
-    endash = u'\u2013'
-    ax.set_title(f'{int(band_days_lower)}{endash}{int(band_days_upper)} days', fontsize=14)
+
+    ax.set_title(f'{band[0]}\u2013{band[1]} days', fontsize=14)
     ax.axvline(0, color='gray', alpha=0.3, zorder=0)
     ax.legend(loc='upper left', fontsize=10, framealpha=1)
 
@@ -333,7 +337,7 @@ def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper,
         ("showall", all_lc_line),
     )
 
-    label1 = f"{int(band_days_lower)}-{int(band_days_upper)}"
+    label1 = f"{band[0]}-{band[1]}"
     label2 = "_".join(label for label, switch in labels if switch)
     label2 = "_" + label2 if label2 else label2
 
@@ -344,14 +348,12 @@ def plot_single_band_distribution(output_dirs, band_days_lower, band_days_upper,
 
 
 
-def plot_global_percent_validity(output_dirs, ax, band_days_lower, band_days_upper):
-
-    number_obs_dir = output_dirs["number_obs"]
+def plot_global_percent_validity(output_dirs, ax, validity, num_obs):
 
     land_cover_codes = ['Bare/sparse vegetation','Herbaceous vegetation',
      'Shrubland','Cropland','Open forest', 'Closed forest']
     tile = 'global'
-    validity = all_season_validity(output_dirs, tile, band_days_lower, band_days_upper)
+
     seasons = validity.keys()
     tile_lat_south = lats_south[tile]
     tile_lat_north = lats_north[tile]
@@ -367,13 +369,17 @@ def plot_global_percent_validity(output_dirs, ax, band_days_lower, band_days_upp
             incoherent_pixels[code] += np.logical_and(validity[season]==0, lc_codes==code).sum()
             no_obs_pixels[code] += np.logical_and(validity[season]==2, lc_codes==code).sum()
             total_pixels[code] += (lc_codes==code).sum()
-            possible_obs = np.load(os.path.join(number_obs_dir, f'total_possible_obs_{season}.npy'))
-            obs_before_mask = np.load(os.path.join(number_obs_dir, f'total_obs_no_sw_mask_{season}.npy'))
-            obs_after_mask = np.load(os.path.join(number_obs_dir, f'total_obs_sw_mask_{season}.npy'))
+
+            possible_obs = num_obs[season]["num_total"]
+            obs_before_mask = num_obs[season]["num_before"]
+            obs_after_mask = num_obs[season]["num_after"]
+
             percent_before_mask = 100. * obs_before_mask / possible_obs
             percent_after_mask = 100. * obs_after_mask / possible_obs
+
             removed_by_inundation = np.logical_and(percent_before_mask>=30., percent_after_mask<30.)
             inundation_masked_pixels[code] += np.logical_and(removed_by_inundation==1, lc_codes==code).sum()
+
     coherent_list = np.array([value for value in coherent_pixels.values()])
     incoherent_list = np.array([value for value in incoherent_pixels.values()])
     inundation_masked_list = np.array([value for value in inundation_masked_pixels.values()])
@@ -400,14 +406,18 @@ def plot_global_percent_validity(output_dirs, ax, band_days_lower, band_days_upp
         ax.text(i, 102, f'({total_list[i]})', fontsize=10, horizontalalignment='center')
 
 
-def subplots_percent_validity(output_dirs):
+def subplots_percent_validity(output_dirs, valid_data, num_data):
 
     figures_dir = output_dirs["figures"]
 
-    fig, (ax2540, ax4060) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-    plot_global_percent_validity(output_dirs, ax2540, 25, 40)
-    plot_global_percent_validity(output_dirs, ax4060, 40, 60)
-    plt.subplots_adjust(right=0.8, wspace=0.05)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=True)
+
+    fig.subplots_adjust(right=0.8, bottom=0.25, wspace=0.05)
+
+    for ax, letter, (band, valid) in zip([ax1, ax2], "ab", valid_data.items()):
+        plot_global_percent_validity(output_dirs, ax, valid, num_data)
+        ax.set_title(f"({letter}) {band[0]}\u2013{band[1]} days", fontsize=16, pad=25)
+
     color_list = ['#ffd92f', '#EA8294', '#AA4499', '#88CCEE', '#889933', '#117733']
     greys = ['#cccccc']*6
     whites = ['#ffffff']*6
@@ -416,60 +426,59 @@ def subplots_percent_validity(output_dirs):
     cmap_handles = [Rectangle((0, 0), 1, 1, edgecolor='k', linewidth=0.75) for _ in cmaps]
     handler_map = dict(zip(cmap_handles, 
                            [StripyPatch(cm) for cm in cmaps]))
-    bar_legend = ax4060.legend(handles=cmap_handles, labels=cmap_labels, handler_map=handler_map, fontsize=12,
-                               loc='center left', bbox_to_anchor=(1.05, 0.5), frameon=True)
+    bar_legend = ax2.legend(handles=cmap_handles, labels=cmap_labels, handler_map=handler_map, fontsize=12,
+                            loc='center left', bbox_to_anchor=(1.05, 0.5), frameon=True)
     # this bit just uses a second legend to put nice borders around the legend patches
     # and hide artefacts in the non-striped boxes
     dummy_labels = ['\n', '\n', '\n\n', '']
     dummy_colours = ['none', '#ffffff', '#cccccc', '#cccccc']
     dummy_hatches = ['', '', '//', '']
     border_boxes = [Rectangle((0, 0), 1.05, 1.05, fc=fc, hatch=h, edgecolor='k', linewidth=0.5) for fc, h in zip(dummy_colours, dummy_hatches)]
-    legend_borders = ax4060.legend(handles=border_boxes, labels=dummy_labels,
-                                   fontsize=12, loc='center left', bbox_to_anchor=(1.05, 0.5), 
-                                   frameon=False)
-    ax4060.add_artist(bar_legend)
-    ax2540.set_ylabel(r'% of pixels', fontsize=16)
-    ax2540.set_title("$\\bf{(a)}$" + u" 25\u201340 days", fontsize=16, pad=25)
-    ax4060.set_title("$\\bf{(b)}$" + u" 40\u201360 days", fontsize=16, pad=25)
+    legend_borders = ax2.legend(handles=border_boxes, labels=dummy_labels,
+                                fontsize=12, loc='center left', bbox_to_anchor=(1.05, 0.5),
+                                frameon=False)
+    ax2.add_artist(bar_legend)
+    ax1.set_ylabel(r'% of pixels', fontsize=16)
+
     save_filename = os.path.join(figures_dir, f'validity_percentage_by_land_cover_global_subplots_inundation')
-    plt.savefig(f'{save_filename}.pdf', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{save_filename}.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{save_filename}.pdf', dpi=600)
+    plt.savefig(f'{save_filename}.png', dpi=600)
 
 
-def median_values(output_dirs, band_days_lower, band_days_upper):
-    lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
-    lc_array = np.zeros_like(lc_codes, dtype=int)
-    lc_array[lc_codes=='Bare/sparse vegetation'] = 1
-    lc_array[lc_codes=='Herbaceous vegetation'] = 2
-    lc_array[lc_codes=='Shrubland'] = 3
-    lc_array[lc_codes=='Cropland'] = 4
-    lc_array[lc_codes=='Open forest'] = 5
-    lc_array[lc_codes=='Closed forest'] = 6
-    lag_band = all_season_lags(output_dirs, 'global', band_days_lower, band_days_upper)
-    lc_code_list = ['Bare/sparse vegetation', 'Herbaceous vegetation', 'Shrubland',
-                 'Cropland', 'Open forest', 'Closed forest']
-    for land_cover_code in lc_code_list:
-        all_lags = []
-        for season in lag_band.keys():
-            season_lags = lag_band[season][lc_codes==land_cover_code]
-            all_lags += season_lags.tolist()
-        valid_lags = np.array(all_lags)
-        valid_lags = valid_lags[~np.isnan(valid_lags)]
-        print(f'{land_cover_code}: median {np.median(valid_lags): 0.2f} days, mode: {scipy.stats.mode(np.round(valid_lags)).mode[0]} days')
+def main():
+    output_dirs = {
+        "spectra": "/prj/nceo/ppha/cpeo/pr-vod-isv/csagan",
+        "spectra_filtered": "/prj/nceo/ppha/cpeo/pr-vod-isv/csagan_sig",
+        "number_obs": "/prj/nceo/ppha/cpeo/pr-vod-isv/number_obs_data",
+        "figures": "/scratch/ppha/cpeo/figures",
+    }
+
+    check_dirs(output_dirs,
+               input_names=("spectra", "spectra_filtered","number_obs"),
+               output_names=("figures",))
+
+    lag_data = {
+        (25, 40): all_season_lags(output_dirs, 'global', 25, 40),
+        (40, 60): all_season_lags(output_dirs, 'global', 40, 60),
+    }
+
+    valid_data = {
+        (25, 40): all_season_validity(output_dirs, 'global', 25, 40),
+        (40, 60): all_season_validity(output_dirs, 'global', 40, 60),
+    }
+
+    num_obs = load_num_obs(output_dirs["number_obs"])
+
+    median_data = {
+        (25, 40): median_95ci_width(output_dirs, 'global', 25, 40),
+        (40, 60): median_95ci_width(output_dirs, 'global', 40, 60),
+    }
+
+    subplots(output_dirs, lag_data, median_data, density=True, show_95ci=True, all_lc_line=True)
+    subplots_percent_validity(output_dirs, valid_data, num_obs)
+    plot_single_band_distribution(output_dirs, lag_data, median_data, (40, 60),
+                                  density=True, show_95ci=True, all_lc_line=False)
 
 
 if __name__ == '__main__':
-    output_base_dir = "/path/to/output/dir"
-
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
-        "figures": os.path.join(output_base_dir, "figures"),
-    }
-
-    subplots(output_dirs, density=True, show_95ci=True, all_lc_line=True)
-    subplots_percent_validity(output_dirs)
-    plot_single_band_distribution(output_dirs, 40, 60,
-                                  density=True, show_95ci=True, all_lc_line=False)
+    main()
