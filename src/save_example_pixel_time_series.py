@@ -63,8 +63,7 @@ def save_pixel_time_series(output_dirs, px_lat, px_lon, px_desc):
     print(f'saved in {(end-start)/60.:.2f} minutes')
 
 
-if __name__ == '__main__':
-
+def main():
     output_base_dir = "/path/to/output/dir"
 
     output_dirs = {
@@ -79,3 +78,7 @@ if __name__ == '__main__':
     save_pixel_time_series(output_dirs, -24.625, 125.375, 'australia_3dlagDJFnonzero')
     save_pixel_time_series(output_dirs, 3.875, 31.875, 'east_africa_20dlagMAM')
     save_pixel_time_series(output_dirs, -18.625, 47.375, 'madagascar_-22dlagMAM')
+
+
+if __name__ == '__main__':
+    main()

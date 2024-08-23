@@ -229,8 +229,7 @@ def lag_sign_stats(output_dirs, season, band_days_lower, band_days_upper):
     print(f'sign uncertain: {cross_ci_px}')
 
 
-if __name__ == '__main__':
-
+def main():
     output_base_dir = "/path/to/output/dir"
 
     output_dirs = {
@@ -246,3 +245,7 @@ if __name__ == '__main__':
                output_names=("figures",))
 
     global_plots_with95ci(output_dirs)
+
+
+if __name__ == '__main__':
+    main()

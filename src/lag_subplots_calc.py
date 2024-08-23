@@ -63,8 +63,7 @@ def save_lags_to_file(output_dirs):
     return
 
 
-if __name__ == '__main__':
-
+def main():
     output_base_dir = "/path/to/output/dir"
 
     output_dirs = {
@@ -79,4 +78,8 @@ if __name__ == '__main__':
                input_names=("base", "spectra", "spectra_filtered"),
                output_names=("lag_data", ))
 
-    lag_data_dir = save_lags_to_file(output_dirs)
+    save_lags_to_file(output_dirs)
+
+
+if __name__ == '__main__':
+    main()

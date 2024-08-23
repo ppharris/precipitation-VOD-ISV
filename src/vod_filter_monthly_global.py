@@ -65,7 +65,7 @@ def filter_jumps_monthly(vod_tile, allowed_jump_stdevs=2):
     return ma.masked_invalid(filtered_vod)
 
 
-if __name__ == '__main__':
+def main():
     save_dir = '/localscratch/wllf029/bethar/filtered_vod'
     tile_lats_south = [-60, -30, 30]
     tile_lats_north = [-30, 30, 80]
@@ -86,3 +86,7 @@ if __name__ == '__main__':
             cube_shape = filtered_cube.shape
             iris.save(filtered_cube, f'{save_dir}/VOD-X-band_filtered_{lon_tile_label}_{lat_tile_label}.nc',
                       fill_value=-999999.0, chunksizes=(1, cube_shape[1], cube_shape[2]))
+
+
+if __name__ == '__main__':
+    main()

@@ -205,8 +205,7 @@ def filter_pixel(vod_px, sm_px, swamps_px, demo_figure=False):
     return vod_filtered
 
 
-if __name__ == '__main__':
-
+def main():
     save_dir = "/path/to/output/dir"
 
     tile_lats_south = [-60, -30, 30]
@@ -220,3 +219,7 @@ if __name__ == '__main__':
             cube_shape = filtered_vod.shape
             iris.save(filtered_vod, f'{save_dir}, VOD-X-band_filtered_surface_water_{lon_tile_label}_{lat_tile_label}.nc',
                       fill_value=-999999.0, chunksizes=(1, cube_shape[1], cube_shape[2]))
+
+
+if __name__ == '__main__':
+    main()
