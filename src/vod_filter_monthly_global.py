@@ -1,9 +1,7 @@
 import iris
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from tqdm import tqdm
-import sys
 
 from datetime_utils import days_since_1970_to_decimal_year, decimal_year_to_datetime
 from read_data_iris import read_data_all_years

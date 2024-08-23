@@ -2,16 +2,14 @@ import cartopy.crs as ccrs
 from cartopy.mpl.geoaxes import GeoAxes
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from itertools import product
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import AxesGrid
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from mpl_toolkits.axes_grid1 import AxesGrid
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import numpy as np
 import os
 
-from read_csagan_saved_output import read_region_data
 from read_data_iris import check_dirs
 
 

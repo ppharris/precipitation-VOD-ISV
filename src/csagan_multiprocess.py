@@ -1,5 +1,6 @@
 import argparse
 import calendar
+from cftime import num2date
 from datetime import datetime
 from multiprocessing import Pool, RawArray
 from netCDF4 import Dataset
@@ -13,7 +14,7 @@ from subprocess import run
 import time
 
 from read_data_iris import read_data_all_years, read_land_sea_mask
-from datetime_utils import decimal_year_to_datetime
+from datetime_utils import decimal_year_to_datetime, days_since_1970_to_decimal_year
 
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).

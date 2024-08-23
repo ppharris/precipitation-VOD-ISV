@@ -1,19 +1,15 @@
-from read_data_iris import *
-import cftime
 from datetime import datetime
 from datetime import timedelta
-from plot_utils import binned_cmap
-import numpy.ma as ma
+import iris
 import matplotlib.pyplot as plt
-import scipy
+import numpy as np
+import numpy.ma as ma
 from scipy import ndimage
-from scipy.stats.mstats import pearsonr
 from scipy.stats import t as tdist
-import pandas as pd
-from datetime_utils import *
-import warnings
 from tqdm import tqdm
-import sys
+import warnings
+
+from read_data_iris import read_data_all_years
 
 
 timesteps = 6940
@@ -210,6 +206,9 @@ def filter_pixel(vod_px, sm_px, swamps_px, demo_figure=False):
 
 
 if __name__ == '__main__':
+
+    save_dir = "/path/to/output/dir"
+
     tile_lats_south = [-60, -30, 30]
     tile_lats_north = [-30, 30, 80]
     for lat_south, lat_north in zip(tile_lats_south, tile_lats_north):

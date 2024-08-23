@@ -1,6 +1,5 @@
-from scipy.signal import butter, sosfiltfilt
 import numpy as np
-import pandas as pd
+from scipy.signal import butter, sosfiltfilt
 
 
 def butter_lowpass_filter(data, lowcut, fs, order=5):
@@ -151,14 +150,6 @@ def lanczos_highpass_weights(window, cutoff):
     w[n-1:0:-1] = -firstfactor * sigma
     w[n+1:-1] = -firstfactor * sigma
     return w[1:-1]
-
-
-def lanczos_lowpass_filter(data, freq_low, window=121):
-    weights = lanczos_lowpass_weights(window, freq_low)
-    filtered_data = data.rolling_window('time', iris.analysis.MEAN, len(weights), weights=weights)
-    _Rolling_and_Expanding.weighted_mean = weighted_mean
-    filtered_data = np.array(pd.DataFrame(data).rolling(window=window).weighted_mean(weights).values.ravel().tolist())
-    return filtered_data
 
 
 def lanczos_filter_missing_data(data, freq_low, freq_high, window=61, min_slice_size=100):

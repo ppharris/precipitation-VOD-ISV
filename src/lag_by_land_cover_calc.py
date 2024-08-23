@@ -2,7 +2,6 @@ import numpy as np
 import os
 import re
 import iris
-import scipy.stats
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle

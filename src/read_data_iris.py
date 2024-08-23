@@ -8,6 +8,7 @@ import cf_units
 import dask.array as da
 from tqdm import tqdm
 from scipy.stats import linregress
+import sys
 
 
 def check_dirs(dirs, input_names=(), output_names=()):
@@ -186,7 +187,7 @@ def all_regridded_datasets(band, lon_west=-180, lon_east=180, lat_south=-30, lat
                               lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
     imerg = read_data_all_years('IMERG', band=band, regridded=True, min_year=min_year, max_year=max_year,
                                  lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
-    return vod, chirps, imerg
+    return vod, imerg
 
 
 def detrend_missing_values(data):

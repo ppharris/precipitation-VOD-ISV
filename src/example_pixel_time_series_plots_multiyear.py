@@ -117,7 +117,7 @@ def filter_vod_seasons(px_desc, dates, all_imerg, all_vod, window_size=5):
     if not missing_data[0]:
         start_valid.insert(0, 0)
     if len(end_valid) == len(start_valid) - 1:
-        end_valid.append(data.size)
+        end_valid.append(missing_data.size)
     valid_data_slices = zip(start_valid, end_valid)
     filtered_dates = np.array([])
     filtered_vod = np.array([])
