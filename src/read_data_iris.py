@@ -7,7 +7,6 @@ import xarray as xr
 import cf_units
 import dask.array as da
 from scipy.stats import linregress
-import sys
 
 
 def data_directory(dataset, band=None, regridded=False, mask_surface_water=False):

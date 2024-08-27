@@ -286,7 +286,7 @@ def all_pixels(output_dirs, window_size=7):
     plt.savefig(os.path.join(figures_dir, f'example_pixel_time_series_filtered_bin{int(window_size)}.png'), bbox_inches='tight')
 
 
-def main()
+def main():
     output_base_dir = "/path/to/output/dir"
 
     output_dirs = {
