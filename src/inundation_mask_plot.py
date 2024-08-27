@@ -8,7 +8,7 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 import numpy as np
 import os
 
-from read_data_iris import check_dirs
+import utils_load as ul
 
 
 def removed_for_inundation(number_obs_dir, season):
@@ -21,7 +21,7 @@ def removed_for_inundation(number_obs_dir, season):
     return removed_by_mask
 
 
-def inundation_mask_maps(output_dirs):
+def inundation_mask_maps(output_dirs, seasons):
 
     number_obs_dir = output_dirs["number_obs"]
     figures_dir = output_dirs["figures"]
@@ -36,9 +36,13 @@ def inundation_mask_maps(output_dirs):
     lats = np.arange(-55, 55, 0.25) + 0.5*0.25
     lon_bounds = np.hstack((lons - 0.5*0.25, np.array([lons[-1]+0.5*0.25])))
     lat_bounds = np.hstack((lats - 0.5*0.25, np.array([lats[-1]+0.5*0.25])))
+
+    ns = len(seasons)
+    nrows_ncols = (ns//2 + ns % 2, 2)
+
     fig = plt.figure(figsize=(16, 8))
     axgr = AxesGrid(fig, 111, axes_class=axes_class,
-                    nrows_ncols=(2, 2),
+                    nrows_ncols=nrows_ncols,
                     axes_pad=0.2,
                     cbar_location='bottom',
                     cbar_mode='single',
@@ -46,18 +50,17 @@ def inundation_mask_maps(output_dirs):
                     cbar_size='10%',
                     label_mode='')  # note the empty label_mode
 
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
-
-    for i, ax in enumerate(axgr):
-        obs_removed = removed_for_inundation(number_obs_dir, seasons[i]).astype(float)
-        ssm_obs = np.load(os.path.join(number_obs_dir, f'total_obs_ssm_{seasons[i]}.npy'))
-        total_days = np.load(os.path.join(number_obs_dir, f'total_possible_obs_{seasons[i]}.npy'))
+    for ax, season in zip(axgr, seasons):
+        print(ax)
+        obs_removed = removed_for_inundation(number_obs_dir, season).astype(float)
+        ssm_obs = np.load(os.path.join(number_obs_dir, f'total_obs_ssm_{season}.npy'))
+        total_days = np.load(os.path.join(number_obs_dir, f'total_possible_obs_{season}.npy'))
         ssm_obs_pc = 100. * ssm_obs / total_days
         ssm_obs_pc[land==0.] = np.nan
         obs_removed[obs_removed==0.] = np.nan
         obs_removed[np.logical_and(obs_removed==1, ssm_obs_pc==0)] = 2
         ax.coastlines(color='#999999',linewidth=0.1)
-        ax.text(0.015, 0.825, f'{seasons[i]}', fontsize=16, transform=ax.transAxes)
+        ax.text(0.015, 0.825, season, fontsize=16, transform=ax.transAxes)
         p = ax.pcolormesh(lon_bounds, lat_bounds, obs_removed, transform=ccrs.PlateCarree(),
                           cmap=mpl.colors.ListedColormap(['#007dea', '#b2b2b2']), rasterized=True)
         ax.set_extent((-180, 180, -55, 55), crs=ccrs.PlateCarree())
@@ -87,22 +90,26 @@ def inundation_mask_maps(output_dirs):
 
 def main():
 
-    output_base_dir = "/path/to/output/dir"
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
-        "figures": os.path.join(output_base_dir, "figures"),
-    }
+    metadata = ul.load_yaml(args)
 
-    check_dirs(output_dirs,
-               input_names=("number_obs",),
-               output_names=("figures",)
+    output_dirs = metadata.get("output_dirs", None)
+    seasons = metadata["lags"].get("seasons", None)
+
+    ul.check_dirs(output_dirs,
+                  input_names=("number_obs",),
+                  output_names=("figures",)
     )
 
-    inundation_mask_maps(output_dirs)
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
+    inundation_mask_maps(output_dirs, seasons)
 
     return
 

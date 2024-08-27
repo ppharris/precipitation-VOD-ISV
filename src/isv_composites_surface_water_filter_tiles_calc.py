@@ -5,6 +5,7 @@ import iris
 import os
 
 from read_data_iris import crop_cube
+import utils_load as ul
 
 
 def land_cover_codes(land_cover):
@@ -281,24 +282,24 @@ def ndvi_composites(output_dirs, land_covers, days_range=60):
 
 def main():
 
-    output_base_dir = "/path/to/output/dir"
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
-        "pixel_time_series": os.path.join(output_base_dir, "data_pixel_time_series"),
-        "data_isv": os.path.join(output_base_dir, "data_isv"),
-        "data_isv_comp": os.path.join(output_base_dir, "data_isv_comp"),
-        "figures": os.path.join(output_base_dir, "figures"),
-    }
+    metadata = ul.load_yaml(args)
 
-    land_covers = ['baresparse', 'shrub', 'herb', 'crop', 'openforest', 'closedforest']
+    output_dirs = metadata.get("output_dirs", None)
+    land_covers = metadata["isv"].get("land_covers", None)
+    days_range = metadata["isv"].get("days_range", None)
 
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
     hemi_composites(output_dirs, 'south', land_covers)
     full_composites(output_dirs, land_covers)
-    ndvi_composites(output_dirs, land_covers, days_range=60)
+    ndvi_composites(output_dirs, land_covers, days_range=days_range)
 
 
 if __name__ == '__main__':

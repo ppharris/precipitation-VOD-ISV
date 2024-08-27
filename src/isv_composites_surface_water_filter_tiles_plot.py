@@ -3,6 +3,8 @@ import numpy as np
 import os
 import string
 
+import utils_load as ul
+
 
 def land_cover_full_name(land_cover):
     full_names = {'baresparse': 'Bare/sparse vegetation',
@@ -68,22 +70,23 @@ def plot_composites(output_dirs, land_covers, days_range=60, ndvi=False):
 
 def main():
 
-    output_base_dir = "/path/to/output/dir"
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
-        "pixel_time_series": os.path.join(output_base_dir, "data_pixel_time_series"),
-        "data_isv": os.path.join(output_base_dir, "data_isv"),
-        "data_isv_comp": os.path.join(output_base_dir, "data_isv_comp"),
-        "figures": os.path.join(output_base_dir, "figures"),
-    }
+    metadata = ul.load_yaml(args)
 
-    land_covers = ['baresparse', 'shrub', 'herb', 'crop', 'openforest', 'closedforest']
+    output_dirs = metadata.get("output_dirs", None)
+    land_covers = metadata["isv"].get("land_covers", None)
+    days_range = metadata["isv"].get("days_range", None)
+    ndvi = metadata["isv"].get("ndvi", None)
 
-    plot_composites(output_dirs, land_covers, days_range=60, ndvi=True)
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
+    plot_composites(output_dirs, land_covers, days_range=days_range, ndvi=ndvi)
 
 
 if __name__ == '__main__':

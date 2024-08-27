@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 import os
 
-from read_data_iris import check_dirs
+import utils_load as ul
 
 
 def global_plots_mean_estimate(output_dirs):
@@ -112,13 +112,10 @@ def global_plots_mean_estimate(output_dirs):
     plt.savefig(os.path.join(figures_dir, 'lag_subplots_mean_phase_diff_estimate.pdf'), dpi=1000, bbox_inches='tight')
 
 
-def global_plots_with95ci(output_dirs):
+def global_plots_with95ci(output_dirs, bands, seasons):
 
     lag_data_dir = output_dirs["lag_data"]
     figures_dir = output_dirs["figures"]
-
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
-    bands = ([25, 40], [40, 60])
 
     projection = ccrs.PlateCarree()
     axes_class = (GeoAxes,
@@ -180,6 +177,8 @@ def global_plots_with95ci(output_dirs):
         ax.text(0.05, 0.05, f'{int(percent_neg):d}%', color=negative_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
         ax.text(0.13, 0.05, f'{int(percent_unsure):d}%', color='#ba8e25', transform=ax.transAxes, horizontalalignment='center', fontsize=12)
         ax.text(0.21, 0.05, f'{int(percent_pos):d}%', color=positive_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
+        ax.set_title(f"{band_lower}–{band_upper} days", fontsize=11)
+
     axes = np.reshape(axgr, axgr.get_geometry())
     for ax in axes[:-1, :].flatten():
         ax.xaxis.set_tick_params(which='both', 
@@ -188,8 +187,6 @@ def global_plots_with95ci(output_dirs):
         ax.yaxis.set_tick_params(which='both', 
                                  labelbottom=False, labeltop=False)
     axes = np.reshape(axgr, axgr.get_geometry())
-    axes[0, 0].set_title(u"25\u201340 days", fontsize=18)
-    axes[0, 1].set_title(u"40\u201360 days", fontsize=18)    
     cbar = axgr.cbar_axes[0].colorbar(p, ticks=[0, 1, 2])
     cbar.ax.set_xticklabels(['negative\nphase difference', 
                              'phase difference\nindistinguishable from zero',
@@ -230,21 +227,27 @@ def lag_sign_stats(output_dirs, season, band_days_lower, band_days_upper):
 
 
 def main():
-    output_base_dir = "/path/to/output/dir"
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "figures": os.path.join(output_base_dir, "figures"),
-        "lag_data": os.path.join(output_base_dir, "lag_subplots_data"),
-    }
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    check_dirs(output_dirs,
-               input_names=("lag_data",),
-               output_names=("figures",))
+    metadata = ul.load_yaml(args)
 
-    global_plots_with95ci(output_dirs)
+    output_dirs = metadata.get("output_dirs", None)
+    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
+    seasons = metadata["lags"].get("seasons", None)
+
+    ul.check_dirs(output_dirs,
+                  input_names=("lag_data",),
+                  output_names=("figures",))
+
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
+    global_plots_with95ci(output_dirs, bands, seasons)
 
 
 if __name__ == '__main__':

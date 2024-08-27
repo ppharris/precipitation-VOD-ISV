@@ -1,0 +1,33 @@
+---
+
+output_dirs:
+  base: /path/to/output/dir
+  spectra: /path/to/output/dir/csagan
+  spectra_filtered: /path/to/output/dir/csagan_sig
+  number_obs: /path/to/output/dir/number_obs_data
+  lag_data: /path/to/output/dir/lag_subplots_data
+  pixel_time_series: /path/to/output/dir/data_pixel_time_series
+  data_isv: /path/to/output/dir/data_isv
+  data_isv_comp: /path/to/output/dir/data_isv_comp
+  figures: /path/to/output/dir/figures
+
+lags:
+  bands:
+    - [25, 40]
+    - [40, 60]
+  seasons:
+    - DJF
+    - MAM
+    - JJA
+    - SON
+
+isv:
+  land_covers:
+    - baresparse
+    - shrub
+    - herb
+    - crop
+    - openforest
+    - closedforest
+  days_range: 60
+  ndvi: True

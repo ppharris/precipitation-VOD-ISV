@@ -11,6 +11,7 @@ import os
 
 from read_data_iris import read_data_all_years, daily_anomalies_normalised, daily_anomalies, monthly_anomalies_normalised
 from bandpass_filters import lanczos_lowpass_filter_missing_data
+import utils_load as ul
 
 
 def remove_aux_coords(cube):
@@ -254,18 +255,18 @@ def save_events(output_dirs, hem):
 
 def main():
 
-    output_base_dir = "/path/to/output/dir"
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "number_obs": os.path.join(output_base_dir, "number_obs_data"),
-        "pixel_time_series": os.path.join(output_base_dir, "data_pixel_time_series"),
-        "data_isv": os.path.join(output_base_dir, "data_isv"),
-        "figures": os.path.join(output_base_dir, "figures"),
-    }
+    args = parser.parse_args()
+    metadata = ul.load_yaml(args)
+    output_dirs = metadata.get("output_dirs", None)
 
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
     print('save standardised anomalies N Hemisphere')
     save_anomalies(output_dirs, 'north')
     save_ndvi_anomalies(output_dirs, 'north')

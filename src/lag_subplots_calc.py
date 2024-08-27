@@ -1,10 +1,11 @@
+from itertools import product
 import pickle
 import numpy as np
 from tqdm import tqdm
 import os
 
 from read_csagan_saved_output import read_region_data
-from read_data_iris import check_dirs
+import utils_load as ul
 
 
 def tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper):
@@ -37,19 +38,15 @@ def tile_global_validity(spectra_save_dir, season):
     return no_csa_global
 
 
-def save_lags_to_file(output_dirs):
+def save_lags_to_file(output_dirs, bands, seasons):
 
     lag_data_dir = output_dirs["lag_data"]
     spectra_save_dir = output_dirs["spectra"]
     spectra_filtered_save_dir = output_dirs["spectra_filtered"]
 
-    seasons = np.repeat(['MAM', 'JJA', 'SON', 'DJF'], 2)
-    band_days_lower = [25, 40]*4
-    band_days_upper = [40, 60]*4
-    for i in tqdm(range(seasons.size), desc='saving lag data to file'):
-        season = seasons[i]
-        lower = band_days_lower[i]
-        upper = band_days_upper[i]
+    for season, (lower, upper) in tqdm(product(seasons, bands),
+                                       desc="Saving lag data to file"):
+        print(season, lower, upper)
         lag_dict = tile_global_from_saved_spectra(spectra_filtered_save_dir, season, lower, upper)
         lag = lag_dict['lag']
         period = lag_dict['period']
@@ -64,21 +61,27 @@ def save_lags_to_file(output_dirs):
 
 
 def main():
-    output_base_dir = "/path/to/output/dir"
 
-    output_dirs = {
-        "base": output_base_dir,
-        "spectra": os.path.join(output_base_dir, "csagan"),
-        "spectra_filtered": os.path.join(output_base_dir, "csagan_sig"),
-        "figures": os.path.join(output_base_dir, "figures"),
-        "lag_data": os.path.join(output_base_dir, "lag_subplots_data"),
-    }
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    check_dirs(output_dirs,
-               input_names=("base", "spectra", "spectra_filtered"),
-               output_names=("lag_data", ))
+    metadata = ul.load_yaml(args)
 
-    save_lags_to_file(output_dirs)
+    output_dirs = metadata.get("output_dirs", None)
+    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
+    seasons = metadata["lags"].get("seasons", None)
+
+    ul.check_dirs(output_dirs,
+                  input_names=("spectra", "spectra_filtered"),
+                  output_names=("lag_data", ))
+
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
+    save_lags_to_file(output_dirs, bands, seasons)
 
 
 if __name__ == '__main__':

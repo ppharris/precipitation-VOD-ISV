@@ -11,7 +11,8 @@ from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from lag_subplots_calc import tile_global_validity, tile_global_from_saved_spectra
 from plot_utils import binned_cmap, StripyPatch
 from read_csagan_saved_output import read_region_data
-from read_data_iris import crop_cube, check_dirs
+from read_data_iris import crop_cube
+import utils_load as ul
 
 
 lats_south = {'global': -55, 'southern': -60, 'tropics': -30, 'northern': 30, 'polar': 60}
@@ -69,10 +70,10 @@ def line_break_string(the_string, max_line_length):
         return broken_string
 
 
-def load_num_obs(number_obs_dir):
+def load_num_obs(number_obs_dir, seasons):
 
     num_obs = {}
-    for season in ('MAM', 'JJA', 'SON', 'DJF'):
+    for season in seasons:
         season_obs = {
             "num_total": np.load(os.path.join(number_obs_dir, f'total_possible_obs_{season}.npy')),
             "num_before": np.load(os.path.join(number_obs_dir, f'total_obs_no_sw_mask_{season}.npy')),
@@ -82,11 +83,10 @@ def load_num_obs(number_obs_dir):
     return num_obs
 
 
-def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero_only=False):
+def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, seasons, nonzero_only=False):
 
     spectra_filt_dir = output_dirs["spectra_filtered"]
 
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
     mask_lag = {}
     for season in seasons:
         if tile != 'global':
@@ -112,11 +112,10 @@ def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, nonzero
     return mask_lag
 
 
-def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper):
+def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper, seasons):
 
     spectra_save_dir = output_dirs["spectra_filtered"]
 
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
     all_lag_errors = {}
     for season in seasons:
         if tile != 'global':
@@ -134,12 +133,11 @@ def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper):
     return np.nanpercentile(lag_errors_stack, 50)
 
 
-def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper):
+def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper, seasons):
 
     spectra_save_dir = output_dirs["spectra"]
     spectra_filt_dir = output_dirs["spectra_filtered"]
 
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
     validity = {}
     for season in seasons:
         if tile != 'global':
@@ -445,37 +443,48 @@ def subplots_percent_validity(output_dirs, valid_data, num_data):
 
 
 def main():
-    output_dirs = {
-        "spectra": "/prj/nceo/ppha/cpeo/pr-vod-isv/csagan",
-        "spectra_filtered": "/prj/nceo/ppha/cpeo/pr-vod-isv/csagan_sig",
-        "number_obs": "/prj/nceo/ppha/cpeo/pr-vod-isv/number_obs_data",
-        "figures": "/scratch/ppha/cpeo/figures",
-    }
 
-    check_dirs(output_dirs,
-               input_names=("spectra", "spectra_filtered","number_obs"),
-               output_names=("figures",))
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
+    metadata = ul.load_yaml(args)
+
+    output_dirs = metadata.get("output_dirs", None)
+    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
+    seasons = metadata["lags"].get("seasons", None)
+
+    ul.check_dirs(output_dirs,
+                  input_names=("spectra", "spectra_filtered","number_obs"),
+                  output_names=("figures",))
+
+    ###########################################################################
+    # Run the analysis.
+    ###########################################################################
     lag_data = {
-        (25, 40): all_season_lags(output_dirs, 'global', 25, 40),
-        (40, 60): all_season_lags(output_dirs, 'global', 40, 60),
+        band: all_season_lags(output_dirs, 'global', *band, seasons=seasons) for band in bands
     }
 
     valid_data = {
-        (25, 40): all_season_validity(output_dirs, 'global', 25, 40),
-        (40, 60): all_season_validity(output_dirs, 'global', 40, 60),
+        band: all_season_validity(output_dirs, 'global', *band, seasons=seasons) for band in bands
     }
 
-    num_obs = load_num_obs(output_dirs["number_obs"])
+    num_obs = load_num_obs(output_dirs["number_obs"], seasons)
 
     median_data = {
-        (25, 40): median_95ci_width(output_dirs, 'global', 25, 40),
-        (40, 60): median_95ci_width(output_dirs, 'global', 40, 60),
+        band: median_95ci_width(output_dirs, 'global', *band, seasons=seasons) for band in bands
     }
 
-    subplots(output_dirs, lag_data, median_data, density=True, show_95ci=True, all_lc_line=True)
+    subplots(output_dirs, lag_data, median_data,
+             density=True,
+             show_95ci=True,
+             all_lc_line=True)
+
     subplots_percent_validity(output_dirs, valid_data, num_obs)
-    plot_single_band_distribution(output_dirs, lag_data, median_data, (40, 60),
+
+    plot_single_band_distribution(output_dirs, lag_data, median_data, bands[-1],
                                   density=True, show_95ci=True, all_lc_line=False)
 
 
