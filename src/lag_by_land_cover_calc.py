@@ -91,7 +91,8 @@ def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, seasons
     for season in seasons:
         if tile != 'global':
             tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
-            neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
+            with open(tile_filename,'rb') as f:
+                neighbourhood_average_spectra = pickle.load(f)
             # Subset array for some reason?
             for key in neighbourhood_average_spectra.keys():
                 neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
@@ -120,7 +121,8 @@ def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper, seaso
     for season in seasons:
         if tile != 'global':
             tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
-            neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
+            with open(tile_filename,'rb') as f:
+                neighbourhood_average_spectra = pickle.load(f)
             for key in neighbourhood_average_spectra.keys():
                 if tile == 'polar':
                     neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-40]
@@ -142,7 +144,9 @@ def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper, sea
     for season in seasons:
         if tile != 'global':
             tile_filename = f"{spectra_filt_dir}/spectra_nooverlap_tropics_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
-            neighbourhood_average_spectra = pickle.load(open(tile_filename,'rb'))
+            with open(tile_filename,'rb') as f:
+                neighbourhood_average_spectra = pickle.load(f)
+
             original_output_filename = f"{spectra_save_dir}/tropics_IMERG_VOD_spectra_X_{season}_mask_sw_best85.pkl"
             lats, lons, spectra = read_region_data(original_output_filename, tile, -180, 180, lats_south[tile], lats_north[tile])
             no_csa = (spectra == {})

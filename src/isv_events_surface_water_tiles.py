@@ -250,7 +250,8 @@ def save_events(output_dirs, hem):
     events = get_all_events(imerg_lowfreq)
 
     file_out = os.path.join(data_dir, f'imerg_isv_events_lowpass_1std_{hem}.pkl')
-    pickle.dump(events, open(file_out, 'wb'))
+    with open(file_out, 'wb') as f:
+        pickle.dump(events, f)
 
 
 def main():

@@ -19,7 +19,8 @@ def read_saved_data(save_filename):
     saved_data: unknown dtype
         Data loaded from pickle file
     """
-    saved_data = pickle.load(open(save_filename, 'rb'))
+    with open(save_filename, 'rb') as f:
+        saved_data = pickle.load(f)
     return saved_data
 
 

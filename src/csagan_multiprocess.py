@@ -751,7 +751,8 @@ def write_to_dataset(filename, results, results_lats, results_lons):
     end_lon = np.argmin(np.abs(region_lons-results_lons.max()))
  
     if Path(filename).is_file():
-        region_array = pickle.load(open(filename, 'rb'))
+        with open(filename, 'rb') as fin:
+            region_array = pickle.load(fin)
     else:
         region_array = np.empty((region_lats.size, region_lons.size), dtype=object)
         for i in range(region_lats.size):
@@ -762,7 +763,8 @@ def write_to_dataset(filename, results, results_lats, results_lons):
         for j, lon_idx in enumerate(range(start_lon, end_lon+1)):
             region_array[lat_idx, lon_idx] = results[i, j]
 
-    pickle.dump(region_array, open(filename, 'wb'))
+    with open(filename, 'wb') as fout:
+        pickle.dump(region_array, fout)
 
 
 def main():

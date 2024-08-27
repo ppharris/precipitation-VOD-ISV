@@ -12,9 +12,16 @@ def tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, ba
     tropics_filename = f"{spectra_save_dir}/spectra_nooverlap_tropics_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
     northern_filename = f"{spectra_save_dir}/spectra_nooverlap_northern_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
     southern_filename = f"{spectra_save_dir}/spectra_nooverlap_southern_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
-    spectra_tropics = pickle.load(open(tropics_filename, 'rb'))
-    spectra_northern = pickle.load(open(northern_filename, 'rb'))
-    spectra_southern = pickle.load(open(southern_filename, 'rb'))
+
+    with open(tropics_filename, 'rb') as f:
+        spectra_tropics = pickle.load(f)
+
+    with open(northern_filename, 'rb') as f:
+        spectra_northern = pickle.load(f)
+
+    with open(southern_filename, 'rb') as f:
+        spectra_southern = pickle.load(f)
+
     spectra_global = {}
     for key in spectra_tropics.keys():
         spectra_global[key] = np.empty((440, 1440))

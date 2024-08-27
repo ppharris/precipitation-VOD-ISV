@@ -387,7 +387,8 @@ def main():
 
     neighbourhood_averages = run_neighbourhood_averaging(lats, lons)
 
-    pickle.dump(neighbourhood_averages, open(output_filename, 'wb'))
+    with open(output_filename, 'wb') as f:
+        pickle.dump(neighbourhood_averages, f)
 
 
 if __name__ == '__main__':
