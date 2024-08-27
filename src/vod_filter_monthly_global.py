@@ -1,7 +1,6 @@
 import iris
 import numpy as np
 import numpy.ma as ma
-from tqdm import tqdm
 
 from datetime_utils import days_since_1970_to_decimal_year, decimal_year_to_datetime
 from read_data_iris import read_data_all_years
@@ -70,7 +69,7 @@ def main():
     tile_lats_south = [-60, -30, 30]
     tile_lats_north = [-30, 30, 80]
     for lat_south, lat_north in zip(tile_lats_south, tile_lats_north):
-        for lon_west in tqdm(np.arange(-180, 151, 30)):
+        for lon_west in np.arange(-180, 151, 30):
             lon_east = lon_west + 30
             vod_tile = read_data_all_years('VOD', band='X', min_year=2000, max_year=2018, 
                                            lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)

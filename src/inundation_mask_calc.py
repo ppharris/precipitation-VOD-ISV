@@ -1,5 +1,4 @@
 import os
-from tqdm import tqdm
 import numpy as np
 import numpy.ma as ma
 import iris.coord_categorisation
@@ -37,7 +36,7 @@ def save_ssm_seasonal_obs_numbers(output_dirs, seasons):
     ssm = ssm.extract(date_range)
     iris.coord_categorisation.add_season(ssm, 'time', name='clim_season')
 
-    for season in tqdm(seasons, desc='saving SSM seasonal obs numbers'):
+    for season in seasons:
         ssm_season = ssm.extract(iris.Constraint(clim_season=season.lower()))
         total_obs_ssm = ssm_season.collapsed('time', iris.analysis.COUNT,
                                              function=lambda values: values > -99.)
@@ -58,8 +57,10 @@ def save_all_seasonal_obs_numbers(output_dirs, seasons):
     vod_sw_mask = vod_sw_mask.extract(date_range)
     iris.coord_categorisation.add_season(vod_no_sw_mask, 'time', name='clim_season')
     iris.coord_categorisation.add_season(vod_sw_mask, 'time', name='clim_season')
-    for season in tqdm(seasons, desc='saving seasonal obs numbers'):
+
+    for season in seasons:
         save_number_seasonal_vod_obs(output_dirs, vod_no_sw_mask, vod_sw_mask, season)
+
     save_ssm_seasonal_obs_numbers(output_dirs, seasons)
 
 

@@ -1,6 +1,5 @@
 import dask.array as da
 import netCDF4 as nc
-from tqdm import tqdm
 import numpy as np
 import numpy.ma as ma
 import gc
@@ -222,7 +221,7 @@ def grid_coords_from_id(imerg_lowfreq, id):
 def get_all_events(imerg_lowfreq):
     events = []
     box_ids = np.arange(imerg_lowfreq[0].size)
-    for box_id in tqdm(box_ids, desc='finding dates of ISV maxima'):
+    for box_id in box_ids:
         lat_idx, lon_idx = grid_coords_from_id(imerg_lowfreq, box_id)
         sig_event_idx = get_dates_for_box(imerg_lowfreq, lat_idx, lon_idx)
         for event in range(len(sig_event_idx)):
@@ -242,7 +241,7 @@ def save_events(output_dirs, hem):
     imerg_grid_size = imerg_anom[0].shape
 
     imerg_lowfreq = np.empty_like(imerg_anom, dtype=np.float32)
-    for i in tqdm(range(imerg_anom.shape[1]), desc='filtering IMERG to ISV'):
+    for i in range(imerg_anom.shape[1]):
         for j in range(imerg_anom.shape[2]):
             imerg_lowfreq[:, i, j] = lanczos_lowpass_filter_missing_data(imerg_anom[:, i, j], 1./25., 
                                                                          window=121, min_slice_size=100)

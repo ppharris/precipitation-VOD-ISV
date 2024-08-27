@@ -1,4 +1,3 @@
-from tqdm import tqdm
 import numpy as np
 import pickle
 import iris
@@ -59,7 +58,7 @@ def composite_events_all_valid(events, data_grid, imerg_anom, vod_anom, sm_anom,
         composite[np.logical_or(np.logical_or(np.isnan(vod_series), np.isnan(sm_series)), np.isnan(imerg_series))] = np.nan
         n = (~np.isnan(composite)).astype(float)
         start_idx = 1
-    for event in tqdm(events[start_idx:], desc='creating composite'):
+    for event in events[start_idx:]:
         event_series = time_series_around_date(data_grid, event[0][0], event[0][1], event[1], days_range=days_range)
         vod_series = time_series_around_date(vod_anom, event[0][0], event[0][1], event[1], days_range=days_range)
         sm_series = time_series_around_date(sm_anom, event[0][0], event[0][1], event[1], days_range=days_range)
@@ -85,7 +84,7 @@ def composite_events(events, data_grid, days_range=60, existing_composite=None, 
         composite = time_series_around_date(data_grid, event[0][0], event[0][1], event[1], days_range=days_range)
         n = (~np.isnan(composite)).astype(float)
         start_idx = 1
-    for event in tqdm(events[start_idx:], desc='creating composite'):
+    for event in events[start_idx:]:
         event_series = time_series_around_date(data_grid, event[0][0], event[0][1], event[1], days_range=days_range)
         additional_valid_day = np.logical_and(~np.isnan(event_series), ~np.isnan(composite))
         first_valid_day = np.logical_and(~np.isnan(event_series), np.isnan(composite))
@@ -134,7 +133,7 @@ def hemi_composites(output_dirs, hem, land_covers, days_range=60):
 
     data_comp_dir = output_dirs["data_isv_comp"]
     
-    for land_cover in tqdm(land_covers):
+    for land_cover in land_covers:
         lc_events = events_for_land_cover(events, land_cover, lat_south, lat_north)
         days_around, imerg_composite, imerg_n = composite_events_all_valid(lc_events, imerg_anom, imerg_anom, vod_anom, sm_anom, days_range=days_range)
         _, vod_composite, vod_n = composite_events_all_valid(lc_events, vod_anom, imerg_anom, vod_anom, sm_anom, days_range=days_range)
@@ -187,7 +186,7 @@ def full_composites(output_dirs, land_covers, days_range=60):
 
     lat_south = 0
     lat_north = 60
-    for land_cover in tqdm(land_covers):
+    for land_cover in land_covers:
         lc_events = events_for_land_cover(events, land_cover, lat_south, lat_north)
 
         imerg_composite_south = np.load(os.path.join(data_comp_dir, f'imerg_composite_south_55NS_{land_cover}.npy'))
@@ -239,7 +238,7 @@ def ndvi_composites(output_dirs, land_covers, days_range=60):
     ndvi_anomaly = iris.load_cube(file_ndvi)
     ndvi_anom = ndvi_anomaly.data.filled(np.nan)
 
-    for land_cover in tqdm(land_covers):
+    for land_cover in land_covers:
         lc_events = events_for_land_cover(events, land_cover, lat_south, lat_north)
         days_around, ndvi_composite, ndvi_n = composite_events(lc_events, ndvi_anom, days_range=days_range)
 
@@ -263,7 +262,7 @@ def ndvi_composites(output_dirs, land_covers, days_range=60):
     ndvi_anomaly = iris.load_cube(file_ndvi)
     ndvi_anom = ndvi_anomaly.data.filled(np.nan)
 
-    for land_cover in tqdm(land_covers):
+    for land_cover in land_covers:
         lc_events = events_for_land_cover(events, land_cover, lat_south, lat_north)
 
         ndvi_composite_south = np.load(os.path.join(data_comp_dir, f'ndvi_composite_south_55NS_{land_cover}.npy'))

@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import cf_units
 import dask.array as da
-from tqdm import tqdm
 from scipy.stats import linregress
 import sys
 
@@ -157,7 +156,7 @@ def write_regridded_datasets(band, lon_west=-180, lon_east=180, lat_south=-30, l
     vod = read_data_all_years('VOD', band=band, min_year=min_year, max_year=max_year,
                               lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
     years = np.arange(min_year, max_year + 1, dtype=np.int16)
-    for year in tqdm(years):
+    for year in years:
         imerg_year = read_data_year('IMERG', year, regrid_cube=vod,
                                     lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
         iris.save(imerg_year, f'/prj/nceo/bethar/IMERG/regrid_p25_global/IMERG.V06.{year}.daily_p25.nc')

@@ -1,7 +1,6 @@
 from itertools import product
 import pickle
 import numpy as np
-from tqdm import tqdm
 import os
 
 from read_csagan_saved_output import read_region_data
@@ -51,8 +50,7 @@ def save_lags_to_file(output_dirs, bands, seasons):
     spectra_save_dir = output_dirs["spectra"]
     spectra_filtered_save_dir = output_dirs["spectra_filtered"]
 
-    for season, (lower, upper) in tqdm(product(seasons, bands),
-                                       desc="Saving lag data to file"):
+    for season, (lower, upper) in product(seasons, bands):
         print(season, lower, upper)
         lag_dict = tile_global_from_saved_spectra(spectra_filtered_save_dir, season, lower, upper)
         lag = lag_dict['lag']

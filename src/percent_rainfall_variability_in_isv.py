@@ -4,7 +4,6 @@ import iris.coord_categorisation
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from tqdm import tqdm
 
 from read_data_iris import crop_cube, read_data_all_years
 from bandpass_filters import bandpass_filter_missing_data
@@ -45,7 +44,7 @@ def get_data():
     total_lats = lats.size
     band_variance = np.empty((total_lats, total_lons))
     band_variance_percent = np.empty((total_lats, total_lons))
-    for i in tqdm(range(total_lats)):
+    for i in range(total_lats):
         for j in range(total_lons):
             if land[i, j]:
                 time_series = anomaly_data[:, i, j]

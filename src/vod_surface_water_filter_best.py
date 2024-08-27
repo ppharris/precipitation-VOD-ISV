@@ -6,7 +6,6 @@ import numpy as np
 import numpy.ma as ma
 from scipy import ndimage
 from scipy.stats import t as tdist
-from tqdm import tqdm
 import warnings
 
 from read_data_iris import read_data_all_years
@@ -211,7 +210,7 @@ def main():
     tile_lats_south = [-60, -30, 30]
     tile_lats_north = [-30, 30, 80]
     for lat_south, lat_north in zip(tile_lats_south, tile_lats_north):
-        for lon_west in tqdm(np.arange(-180, 151, 30)):
+        for lon_west in np.arange(-180, 151, 30):
             lon_east = lon_west + 30
             filtered_vod = filter_tile(lon_west, lon_east, lat_south, lat_north)
             lon_tile_label = f'{int(lon_west)}E' if lon_west > 0 else f'{int(-lon_west)}W'
