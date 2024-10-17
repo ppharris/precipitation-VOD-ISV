@@ -31,3 +31,6 @@ isv:
     - closedforest
   days_range: 60
   ndvi: True
+
+plots:
+  type: png

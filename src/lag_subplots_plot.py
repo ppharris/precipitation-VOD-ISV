@@ -13,7 +13,7 @@ import os
 import utils_load as ul
 
 
-def global_plots_mean_estimate(output_dirs):
+def global_plots_mean_estimate(output_dirs, plot_type="png"):
 
     lag_data_dir = output_dirs["lag_data"]
     figures_dir = output_dirs["figures"]
@@ -108,11 +108,13 @@ def global_plots_mean_estimate(output_dirs):
     cbar = axgr.cbar_axes[0].colorbar(p)
     cbar.ax.tick_params(labelsize=16)
     cbar.ax.set_xlabel('phase difference (days)', fontsize=18)
-    plt.savefig(os.path.join(figures_dir, 'lag_subplots_mean_phase_diff_estimate.png'), dpi=600, bbox_inches='tight')
-    plt.savefig(os.path.join(figures_dir, 'lag_subplots_mean_phase_diff_estimate.pdf'), dpi=1000, bbox_inches='tight')
+
+    filename = os.path.join(figures_dir,
+                            f"lag_subplots_mean_phase_diff_estimate.{plot_type}")
+    plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
-def global_plots_with95ci(output_dirs, bands, seasons):
+def global_plots_with95ci(output_dirs, bands, seasons, plot_type="png"):
 
     lag_data_dir = output_dirs["lag_data"]
     figures_dir = output_dirs["figures"]
@@ -193,8 +195,8 @@ def global_plots_with95ci(output_dirs, bands, seasons):
                              'positive\nphase difference'])
     cbar.ax.tick_params(labelsize=16)
 
-    plt.savefig(os.path.join(figures_dir, 'lag_subplots_with95ci.png'), dpi=600, bbox_inches='tight')
-    plt.savefig(os.path.join(figures_dir, 'lag_subplots_with95ci.pdf'), dpi=1000, bbox_inches='tight')
+    fname_out = os.path.join(figures_dir, f"lag_subplots_with95ci.{plot_type}")
+    plt.savefig(fname_out, dpi=600, bbox_inches='tight')
 
 
 def lag_sign_stats(output_dirs, season, band_days_lower, band_days_upper):
@@ -239,6 +241,7 @@ def main():
     output_dirs = metadata.get("output_dirs", None)
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
+    plot_type = metadata["plots"].get("type", "png")
 
     ul.check_dirs(output_dirs,
                   input_names=("lag_data",),
@@ -247,7 +250,7 @@ def main():
     ###########################################################################
     # Run the analysis.
     ###########################################################################
-    global_plots_with95ci(output_dirs, bands, seasons)
+    global_plots_with95ci(output_dirs, bands, seasons, plot_type=plot_type)
 
 
 if __name__ == '__main__':

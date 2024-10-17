@@ -16,7 +16,8 @@ def land_cover_full_name(land_cover):
     return full_names[land_cover]
 
 
-def plot_composites(output_dirs, land_covers, days_range=60, ndvi=False):
+def plot_composites(output_dirs, land_covers,
+                    days_range=60, ndvi=False, plot_type="png"):
 
     data_comp_dir = output_dirs["data_isv_comp"]
     figures_dir = output_dirs["figures"]
@@ -60,12 +61,14 @@ def plot_composites(output_dirs, land_covers, days_range=60, ndvi=False):
         ax.text(58, 1.68, f'mean(n) = {int(np.round(np.mean(n)))}\nmin(n) = {int(np.min(n))}', ha='right', va='top')
     plt.tight_layout()
 
-    save_filename = os.path.join(figures_dir, 'vod_around_precip_isv_maxima_lowpass_1std_norm_withsm_subplots_global_55NS')
+    save_filename = os.path.join(figures_dir,
+                                 'vod_around_precip_isv_maxima_lowpass_1std_norm_withsm_subplots_global_55NS')
     if ndvi:
         save_filename += '_ndvi_dashed'
-    plt.savefig(f'{save_filename}.png', dpi=400)
-    plt.savefig(f'{save_filename}.pdf', dpi=400)
-    plt.savefig(f'{save_filename}.eps', dpi=400)
+
+    save_filename += f".{plot_type}"
+
+    plt.savefig(save_filename, dpi=400)
 
 
 def main():
@@ -82,11 +85,13 @@ def main():
     land_covers = metadata["isv"].get("land_covers", None)
     days_range = metadata["isv"].get("days_range", None)
     ndvi = metadata["isv"].get("ndvi", None)
+    plot_type = metadata["plots"].get("type", "png")
 
     ###########################################################################
     # Run the analysis.
     ###########################################################################
-    plot_composites(output_dirs, land_covers, days_range=days_range, ndvi=ndvi)
+    plot_composites(output_dirs, land_covers, days_range=days_range, ndvi=ndvi,
+                    plot_type=plot_type)
 
 
 if __name__ == '__main__':

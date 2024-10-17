@@ -178,7 +178,8 @@ def hist_lc(mask_lag, lc_codes, land_cover_code, density=False):
     return hist
 
 
-def subplots(output_dirs, lag_data, median_data, density=False, show_95ci=True, all_lc_line=False):
+def subplots(output_dirs, lag_data, median_data,
+             density=False, show_95ci=True, all_lc_line=False, plot_type="png"):
 
     figures_dir = output_dirs["figures"]
 
@@ -282,13 +283,13 @@ def subplots(output_dirs, lag_data, median_data, density=False, show_95ci=True, 
     label2 = "_".join(label for label, switch in labels if switch)
     label2 = "_" + label2 if label2 else label2
 
-    filename = os.path.join(figures_dir, f"land_cover_subplots_global{label2}")
+    filename = os.path.join(figures_dir,
+                            f"land_cover_subplots_global{label2}.{plot_type}")
+    plt.savefig(filename, dpi=600, bbox_inches='tight')
 
-    plt.savefig(f'{filename}.png', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{filename}.pdf', dpi=900, bbox_inches='tight')
 
-
-def plot_single_band_distribution(output_dirs, lag_data, median_data, band, density=False, show_95ci=True, all_lc_line=False):
+def plot_single_band_distribution(output_dirs, lag_data, median_data, band,
+                                  density=False, show_95ci=True, all_lc_line=False, plot_type="png"):
 
     lag_band = lag_data[band]
 
@@ -342,10 +343,9 @@ def plot_single_band_distribution(output_dirs, lag_data, median_data, band, dens
     label2 = "_".join(label for label, switch in labels if switch)
     label2 = "_" + label2 if label2 else label2
 
-    filename = os.path.join(figures_dir, f"land_cover_lag_distribution_global_{label1}{label2}")
-
-    plt.savefig(f'{filename}.png', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{filename}.pdf', dpi=900, bbox_inches='tight')
+    filename = os.path.join(figures_dir,
+                            f"land_cover_lag_distribution_global_{label1}{label2}.{plot_type}")
+    plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
 
@@ -407,7 +407,7 @@ def plot_global_percent_validity(output_dirs, ax, validity, num_obs):
         ax.text(i, 102, f'({total_list[i]})', fontsize=10, horizontalalignment='center')
 
 
-def subplots_percent_validity(output_dirs, valid_data, num_data):
+def subplots_percent_validity(output_dirs, valid_data, num_data, plot_type="png"):
 
     figures_dir = output_dirs["figures"]
 
@@ -441,9 +441,9 @@ def subplots_percent_validity(output_dirs, valid_data, num_data):
     ax2.add_artist(bar_legend)
     ax1.set_ylabel(r'% of pixels', fontsize=16)
 
-    save_filename = os.path.join(figures_dir, f'validity_percentage_by_land_cover_global_subplots_inundation')
-    plt.savefig(f'{save_filename}.pdf', dpi=600)
-    plt.savefig(f'{save_filename}.png', dpi=600)
+    save_filename = os.path.join(figures_dir,
+                                 f'validity_percentage_by_land_cover_global_subplots_inundation.{plot_type}')
+    plt.savefig(save_filename, dpi=600)
 
 
 def main():
@@ -459,6 +459,7 @@ def main():
     output_dirs = metadata.get("output_dirs", None)
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
+    plot_type = metadata["plots"].get("type", "png")
 
     ul.check_dirs(output_dirs,
                   input_names=("spectra", "spectra_filtered","number_obs"),
@@ -484,12 +485,15 @@ def main():
     subplots(output_dirs, lag_data, median_data,
              density=True,
              show_95ci=True,
-             all_lc_line=True)
+             all_lc_line=True,
+             plot_type=plot_type)
 
-    subplots_percent_validity(output_dirs, valid_data, num_obs)
+    subplots_percent_validity(output_dirs, valid_data, num_obs,
+                              plot_type=plot_type)
 
     plot_single_band_distribution(output_dirs, lag_data, median_data, bands[-1],
-                                  density=True, show_95ci=True, all_lc_line=False)
+                                  density=True, show_95ci=True, all_lc_line=False,
+                                  plot_type=plot_type)
 
 
 if __name__ == '__main__':

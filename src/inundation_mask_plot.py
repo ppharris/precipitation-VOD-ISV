@@ -21,7 +21,7 @@ def removed_for_inundation(number_obs_dir, season):
     return removed_by_mask
 
 
-def inundation_mask_maps(output_dirs, seasons):
+def inundation_mask_maps(output_dirs, seasons, plot_type="png"):
 
     number_obs_dir = output_dirs["number_obs"]
     figures_dir = output_dirs["figures"]
@@ -84,8 +84,10 @@ def inundation_mask_maps(output_dirs, seasons):
     cbar.set_ticks([1.25, 1.75])
     cbar.set_ticklabels(['masked', 'masked and no SSM obs'])
     cbar.ax.tick_params(labelsize=16)
-    plt.savefig(os.path.join(figures_dir, 'pixels_removed_by_inundation_mask.pdf'), dpi=1000, bbox_inches='tight')
-    plt.savefig(os.path.join(figures_dir, 'pixels_removed_by_inundation_mask.png'), dpi=1000, bbox_inches='tight')
+
+    filename = os.path.join(figures_dir,
+                            f"pixels_removed_by_inundation_mask.{plot_type}")
+    plt.savefig(filename, dpi=1000, bbox_inches='tight')
 
 
 def main():
@@ -100,6 +102,7 @@ def main():
 
     output_dirs = metadata.get("output_dirs", None)
     seasons = metadata["lags"].get("seasons", None)
+    plot_type = metadata["plots"].get("type", "png")
 
     ul.check_dirs(output_dirs,
                   input_names=("number_obs",),
@@ -109,7 +112,7 @@ def main():
     ###########################################################################
     # Run the analysis.
     ###########################################################################
-    inundation_mask_maps(output_dirs, seasons)
+    inundation_mask_maps(output_dirs, seasons, plot_type=plot_type)
 
     return
 
