@@ -49,10 +49,17 @@ def neighbourhood_indices(lat_idx, lon_idx):
 
 
 def neighbourhood_spectra(spectra_data, lat_idx, lon_idx):
-    """
-    Turn the array of dictionaries of cross-spectral analysis output into lists of arrays of period and coherency
-    for each neighbouring pixel plus central pixel. Each list has one item per pixel in neighbourhood.
-    Index names make sense if array has latitude as axis 0, longitude as axis 1 (both increasing with axis index).
+    """Extract spectral period and coherency data from neighbouring pixels.
+
+    Turn the array of dictionaries of cross-spectral analysis output into lists
+    of arrays of period and coherency for each neighbouring pixel plus central
+    pixel.  Each list has one item per pixel in neighbourhood.  Neighbouring
+    pixels are not necessarily adjacent to the central pixel, see
+    neighbourhood_indices() for exact definition.
+
+    Index names make sense if array has latitude as axis 0, longitude as axis 1
+    (both increasing with axis index).
+
     Parameters
     ----------
     spectra_data: numpy array of dicts
@@ -63,31 +70,30 @@ def neighbourhood_spectra(spectra_data, lat_idx, lon_idx):
         Index representing position of central pixel on axis 1.
     Returns
     -------
-    list_of_periods: list of 1D arrays
+    periods: list of 1D arrays
         Each element in the list is an array of the periods sampled at either
         the central pixel or one of its neighbours.
-    list_of_coherencies: list of 1D arrays
+    coherencies: list of 1D arrays
         Each element in the list is an array of the coherencies computed at either
         the central pixel or one of its neighbours, for the corresponding periods
         from list_of_periods.
+
     """
-    # Initialise empty lists
-    list_of_periods = []
-    list_of_coherencies = []
-    list_of_phases = []
-    list_of_amplitudes = []
-    for pixel in neighbourhood_indices(lat_idx, lon_idx): # Loop through each neighbour pixel
-        pixel_lat = pixel[0]
-        pixel_lon = pixel[1]
-        lat_in_bounds = pixel_lat >= 0 and pixel_lat < spectra_data.shape[0]
-        lon_in_bounds = pixel_lon >= 0 and pixel_lon < spectra_data.shape[1]
+    periods = []
+    coherencies = []
+    for pixel_lat, pixel_lon in neighbourhood_indices(lat_idx, lon_idx):
+        in_bounds = ( (0 <= pixel_lat < spectra_data.shape[0]) and
+                      (0 <= pixel_lon < spectra_data.shape[1]) )
         is_central_pixel = (pixel_lat == lat_idx) and (pixel_lon == lon_idx)
-        if lat_in_bounds and lon_in_bounds and not is_central_pixel:
+        if in_bounds and not is_central_pixel:
             spectrum = spectra_data[pixel_lat, pixel_lon]
-            if spectrum != {}: # Only interested in pixels that had data when cross-spectral analysis was performed
-                list_of_periods.append(spectrum['period'][::-1]) # Reverse so periods are increasing
-                list_of_coherencies.append(spectrum['coherency'][::-1])
-    return list_of_periods, list_of_coherencies
+            # Only interested in pixels that have data from the cross-spectral
+            # analysis. Return reverse data so periods are increasing.
+            if spectrum != {}:
+                periods.append(spectrum['period'][::-1])
+                coherencies.append(spectrum['coherency'][::-1])
+
+    return periods, coherencies
 
 
 def check_significant_neighbours(spectra_data, lat_idx, lon_idx, band_days_lower, band_days_upper):

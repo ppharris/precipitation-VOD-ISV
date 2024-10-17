@@ -164,7 +164,7 @@ def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper, sea
     return validity
 
 
-def hist_lc(mask_lag, lc_codes, land_cover_code, density=False):
+def hist_lc(mask_lag, lc_codes, land_cover_code, lag_bin_bounds, density=False):
     all_lags = []
     for season in mask_lag.keys():
         if land_cover_code == 'all':
@@ -174,12 +174,13 @@ def hist_lc(mask_lag, lc_codes, land_cover_code, density=False):
         else:
             season_lags = mask_lag[season][lc_codes==land_cover_code]
         all_lags += season_lags.tolist()
-    hist, _ = np.histogram(all_lags, bins=np.arange(-30, 31, 1), density=density)
+    hist, _ = np.histogram(all_lags, bins=lag_bin_bounds, density=density)
     return hist
 
 
-def subplots(output_dirs, lag_data, median_data,
-             density=False, show_95ci=True, all_lc_line=False, plot_type="png"):
+def subplots(output_dirs, lag_data, median_data, lag_bin_bounds,
+             density=False, show_95ci=True, all_lc_line=False,
+             filename_out=None, plot_type="png"):
 
     figures_dir = output_dirs["figures"]
 
@@ -239,20 +240,19 @@ def subplots(output_dirs, lag_data, median_data,
 
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
 
-    lag_bins = np.arange(-30, 31, 1)
-    bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
+    bin_centres = lag_bin_bounds[:-1] + (lag_bin_bounds[1] - lag_bin_bounds[0])/2.
 
     for ax, letter, (band, lags) in zip([ax2, ax3], "bc", lag_data.items()):
         for land_cover_code in lc_colors.keys():
-            hist = hist_lc(lags, lc_codes, land_cover_code, density=density)
+            hist = hist_lc(lags, lc_codes, land_cover_code, lag_bin_bounds, density=density)
             ax.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5)
 
         if all_lc_line:
-            hist = hist_lc(lags, lc_codes, 'all', density=density)
+            hist = hist_lc(lags, lc_codes, 'all', lag_bin_bounds, density=density)
             ax.plot(bin_centres, hist, '--', color='k', ms=0, linewidth=1)
 
         ax.tick_params(labelsize=14)
-        ax.set_xlim([-30, 30])
+        ax.set_xlim(lag_bin_bounds[[0, -1]])
         ax.set_xlabel('phase difference (days)', fontsize=16)
 
         if density:
@@ -288,8 +288,9 @@ def subplots(output_dirs, lag_data, median_data,
     plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
-def plot_single_band_distribution(output_dirs, lag_data, median_data, band,
-                                  density=False, show_95ci=True, all_lc_line=False, plot_type="png"):
+def plot_single_band_distribution(output_dirs, lag_data, median_data, band, lag_bin_bounds,
+                                  density=False, show_95ci=True, all_lc_line=False
+                                  filename_out=None, plot_type="png"):
 
     lag_band = lag_data[band]
 
@@ -304,16 +305,18 @@ def plot_single_band_distribution(output_dirs, lag_data, median_data, band,
                  'Cropland': '#88CCEE',
                  'Open forest': '#889933',
                  'Closed forest': '#117733'}
-    lag_bins = np.arange(-30, 31, 1)
-    bin_centres = lag_bins[:-1] + (lag_bins[1] - lag_bins[0])/2.
+
+    bin_centres = lag_bin_bounds[:-1] + (lag_bin_bounds[1] - lag_bin_bounds[0])/2.
+
     for land_cover_code in lc_colors.keys():
-        hist = hist_lc(lag_band, lc_codes, land_cover_code, density=density)
+        hist = hist_lc(lag_band, lc_codes, land_cover_code, lag_bin_bounds, density=density)
         ax.plot(bin_centres, hist, '-o', color=lc_colors[land_cover_code], ms=2.5, label=land_cover_code)
+
     if all_lc_line:
-        hist = hist_lc(lag_band, lc_codes, 'all', density=density)
+        hist = hist_lc(lag_band, lc_codes, 'all', lag_bin_bounds, density=density)
         ax.plot(bin_centres, hist, '--', color='k', ms=0, linewidth=1, label='All')
     ax.tick_params(labelsize=14)
-    ax.set_xlim([-30, 30])
+    ax.set_xlim(lag_bin_bounds[[0, -1]])
     ax.set_xlabel('phase difference (days)', fontsize=16)
     if density:
         ax.set_ylabel('pdf', fontsize=16)
@@ -455,10 +458,13 @@ def main():
     args = parser.parse_args()
 
     metadata = ul.load_yaml(args)
+    metalags = metadata["lags"]
 
     output_dirs = metadata.get("output_dirs", None)
-    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
-    seasons = metadata["lags"].get("seasons", None)
+
+    bands = [tuple(b) for b in metalags.get("bands", None)]
+    seasons = metalags.get("seasons", None)
+    lag_bin_bounds = {b: np.arange(*a) for b, a in zip(bands, metalags.get("lag_bin_bounds", None))}
     plot_type = metadata["plots"].get("type", "png")
 
     ul.check_dirs(output_dirs,
@@ -482,7 +488,9 @@ def main():
         band: median_95ci_width(output_dirs, 'global', *band, seasons=seasons) for band in bands
     }
 
-    subplots(output_dirs, lag_data, median_data,
+    fig3_lag_bin_bounds = np.arange(-30, 31, 1)
+
+    subplots(output_dirs, lag_data, median_data, fig3_lag_bin_bounds,
              density=True,
              show_95ci=True,
              all_lc_line=True,
@@ -491,9 +499,13 @@ def main():
     subplots_percent_validity(output_dirs, valid_data, num_obs,
                               plot_type=plot_type)
 
-    plot_single_band_distribution(output_dirs, lag_data, median_data, bands[-1],
-                                  density=True, show_95ci=True, all_lc_line=False,
-                                  plot_type=plot_type)
+    for band in bands:
+        filename_out = f"phase_{band[0]}-{band[1]}.png"
+        print(filename_out)
+        plot_single_band_distribution(output_dirs, lag_data, median_data, band,
+                                      lag_bin_bounds[band],
+                                      density=True, show_95ci=True, all_lc_line=False,
+                                      filename_out=filename_out, plot_type=plot_type)
 
 
 if __name__ == '__main__':

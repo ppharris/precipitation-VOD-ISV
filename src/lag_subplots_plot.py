@@ -20,7 +20,7 @@ def global_plots_mean_estimate(output_dirs, plot_type="png"):
 
     projection = ccrs.PlateCarree()
     axes_class = (GeoAxes,
-                  dict(map_projection=projection))
+                  dict(projection=projection))
     lons = np.arange(-180, 180, 0.25) + 0.5*0.25
     lats = np.arange(-55, 55, 0.25) + 0.5*0.25
     lon_bounds = np.hstack((lons - 0.5*0.25, np.array([lons[-1]+0.5*0.25])))
@@ -114,60 +114,96 @@ def global_plots_mean_estimate(output_dirs, plot_type="png"):
     plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
-def global_plots_with95ci(output_dirs, bands, seasons, plot_type="png"):
+def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot_type="png"):
 
     lag_data_dir = output_dirs["lag_data"]
     figures_dir = output_dirs["figures"]
 
-    projection = ccrs.PlateCarree()
-    axes_class = (GeoAxes,
-                  dict(map_projection=projection))
+    if plot_raw_lags:
+        cmap = mpl.colormaps.get_cmap("RdYlBu_r")
+        negative_colour = cmap(0)
+        unsure_colour = "#E1BE6A"
+        positive_colour = cmap(255)
+        norm = None
+
+        kw_axesgrid = {
+            "cbar_location": "right",
+            "cbar_mode": "each",
+            "cbar_size": "2%",
+            "cbar_pad": 0.25,
+        }
+    else:
+        positive_colour = '#B0154B'
+        unsure_colour = '#E1BE6A'
+        negative_colour = '#6072C1'
+        lag_colours = [negative_colour, unsure_colour, positive_colour]
+        cmap = mpl.colors.ListedColormap(lag_colours, "")
+        cmap.set_bad('white')
+        cmap.set_under('#c7c7c7')
+        norm = mpl.colors.BoundaryNorm(np.arange(4)-0.5, ncolors=3, clip=False)
+
+        kw_axesgrid = {
+            "cbar_location": "bottom",
+            "cbar_mode": "single",
+            "cbar_size": "10%",
+            "cbar_pad": 0.15,
+        }
+
     lons = np.arange(-180, 180, 0.25) + 0.5*0.25
     lats = np.arange(-55, 55, 0.25) + 0.5*0.25
     lon_bounds = np.hstack((lons - 0.5*0.25, np.array([lons[-1]+0.5*0.25])))
     lat_bounds = np.hstack((lats - 0.5*0.25, np.array([lats[-1]+0.5*0.25])))
+
+    projection = ccrs.PlateCarree()
+    axes_class = (GeoAxes,
+                  dict(projection=projection))
+
     fig = plt.figure(figsize=(16, 10))
-    axgr = AxesGrid(fig, 111, axes_class=axes_class,
+    axgr = AxesGrid(fig, 111,
+                    axes_class=axes_class,
                     nrows_ncols=(len(seasons), len(bands)),
                     axes_pad=0.2,
-                    cbar_location='bottom',
-                    cbar_mode='single',
-                    cbar_pad=0.15,
-                    cbar_size='10%',
-                    label_mode='')
-    positive_colour = '#B0154B'
-    unsure_colour = '#E1BE6A'
-    negative_colour = '#6072C1'
-    lag_colours = [negative_colour, unsure_colour, positive_colour]
-    cmap = mpl.colors.ListedColormap(lag_colours, "")
-    norm = mpl.colors.BoundaryNorm(np.arange(4)-0.5, ncolors=3, clip=False)
-    cmap.set_bad('white')
-    cmap.set_under('#c7c7c7')
+                    label_mode="keep",
+                    **kw_axesgrid)
 
-    for ax, (season, (band_lower, band_upper)) in zip(axgr, product(seasons, bands)):
-        lag = np.load(os.path.join(lag_data_dir, f'lag_{season}_{band_lower}-{band_upper}.npy'))
-        lag_sign = np.ones_like(lag) * np.nan
-        lag_error = np.load(os.path.join(lag_data_dir, f'lag_error_{season}_{band_lower}-{band_upper}.npy'))
+    for ax, cax, (season, (band_lower, band_upper)) in zip(axgr, axgr.cbar_axes, product(seasons, bands)):
+
+        file_lag = os.path.join(lag_data_dir, f'lag_{season}_{band_lower}-{band_upper}.npy')
+        file_lag_error = os.path.join(lag_data_dir, f'lag_error_{season}_{band_lower}-{band_upper}.npy')
+        file_no_csa = os.path.join(lag_data_dir, f'no_csa_{season}_{band_lower}-{band_upper}.npy')
+
+        lag = np.load(file_lag)
+        lag_error = np.load(file_lag_error)
+        no_csa = np.load(file_no_csa)
+
         lag_upper = lag + lag_error
         lag_lower = lag - lag_error
+
         positive_confidence_interval = (lag_lower > 0.)
-        lag_sign[positive_confidence_interval] = 2
         negative_confidence_interval = (lag_upper < 0.)
-        lag_sign[negative_confidence_interval] = 0
         confidence_interval_overlaps_zero = (np.sign(lag_upper)/np.sign(lag_lower) == -1)
-        lag_sign[confidence_interval_overlaps_zero] = 1
-        total_lags = (~np.isnan(lag)).sum()
-        percent_neg = np.round(float(negative_confidence_interval.sum())/float(total_lags) * 100.)
-        percent_pos = np.round(float(positive_confidence_interval.sum())/float(total_lags) * 100.)
-        percent_unsure = np.round(float(confidence_interval_overlaps_zero.sum())/float(total_lags) * 100.)
-        no_csa = np.load(os.path.join(lag_data_dir, f'no_csa_{season}_{band_lower}-{band_upper}.npy'))
         invalid_but_csa = np.logical_and(~no_csa, np.isnan(lag))
-        lag_sign[invalid_but_csa] = -999
-        ax.coastlines(color='#999999',linewidth=0.1)
-        ax.text(0.015, 0.825, f'{season}', fontsize=16, transform=ax.transAxes)
-        p = ax.pcolormesh(lon_bounds, lat_bounds, lag_sign, transform=ccrs.PlateCarree(), 
+
+        total_lags = (~np.isnan(lag)).sum()
+
+        percent_neg = to_percent(negative_confidence_interval.sum(), total_lags)
+        percent_pos = to_percent(positive_confidence_interval.sum(), total_lags)
+        percent_unsure = to_percent(confidence_interval_overlaps_zero.sum(), total_lags)
+
+        if plot_raw_lags:
+            lag_plot = lag
+        else:
+            lag_plot = np.ones_like(lag) * np.nan
+            lag_plot[positive_confidence_interval] = 2
+            lag_plot[negative_confidence_interval] = 0
+            lag_plot[confidence_interval_overlaps_zero] = 1
+            lag_plot[invalid_but_csa] = -999
+
+        p = ax.pcolormesh(lon_bounds, lat_bounds, lag_plot,
                           cmap=cmap, norm=norm, rasterized=True)
-        ax.set_extent((-180, 180, -55, 55), crs=ccrs.PlateCarree())
+
+        ax.coastlines(color='#999999',linewidth=0.1)
+        ax.set_extent((-180, 180, -55, 55), crs=projection)
         ax.set_xticks(np.arange(-90, 91, 90), crs=projection)
         ax.set_yticks(np.arange(-50, 51, 50), crs=projection)
         lon_formatter = LongitudeFormatter(zero_direction_label=True)
@@ -176,10 +212,16 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_type="png"):
         ax.yaxis.set_major_formatter(lat_formatter)
         ax.tick_params(labelsize=14)
         ax.tick_params(axis='x', pad=5)
-        ax.text(0.05, 0.05, f'{int(percent_neg):d}%', color=negative_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
-        ax.text(0.13, 0.05, f'{int(percent_unsure):d}%', color='#ba8e25', transform=ax.transAxes, horizontalalignment='center', fontsize=12)
-        ax.text(0.21, 0.05, f'{int(percent_pos):d}%', color=positive_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
+
         ax.set_title(f"{band_lower}–{band_upper} days", fontsize=11)
+        ax.text(0.015, 0.225, f'{season}', fontsize=11, transform=ax.transAxes)
+        ax.text(0.05, 0.05, f'{percent_neg:3.0f}%', color=negative_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
+        ax.text(0.13, 0.05, f'{percent_unsure:3.0f}%', color='#ba8e25', transform=ax.transAxes, horizontalalignment='center', fontsize=12)
+        ax.text(0.21, 0.05, f'{percent_pos:3.0f}%', color=positive_colour, transform=ax.transAxes, horizontalalignment='center', fontsize=12)
+
+        # Separate colorbar on every map because the ranges may be different.
+        if plot_raw_lags:
+            cbar = cax.colorbar(p)
 
     axes = np.reshape(axgr, axgr.get_geometry())
     for ax in axes[:-1, :].flatten():
@@ -188,12 +230,14 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_type="png"):
     for ax in axes[:, 1:].flatten():
         ax.yaxis.set_tick_params(which='both', 
                                  labelbottom=False, labeltop=False)
-    axes = np.reshape(axgr, axgr.get_geometry())
-    cbar = axgr.cbar_axes[0].colorbar(p, ticks=[0, 1, 2])
-    cbar.ax.set_xticklabels(['negative\nphase difference', 
-                             'phase difference\nindistinguishable from zero',
-                             'positive\nphase difference'])
-    cbar.ax.tick_params(labelsize=16)
+
+    # Single colorbar for all plots because it's categories.
+    if not plot_raw_lags:
+        cbar = axgr.cbar_axes[0].colorbar(p, ticks=[0, 1, 2])
+        cbar.ax.set_xticklabels(['negative\nphase difference', 
+                                 'phase difference\nindistinguishable from zero',
+                                 'positive\nphase difference'])
+        cbar.ax.tick_params(labelsize=16)
 
     fname_out = os.path.join(figures_dir, f"lag_subplots_with95ci.{plot_type}")
     plt.savefig(fname_out, dpi=600, bbox_inches='tight')
