@@ -128,8 +128,15 @@ def check_significant_neighbours(spectra_data, lat_idx, lon_idx, band_days_lower
     if central_spectra != {}:
         central_periods = central_spectra['period'][::-1]
         central_coherencies = central_spectra['coherency'][::-1]
+
         neighbour_periods, neighbour_coherencies = neighbourhood_spectra(spectra_data, lat_idx, lon_idx)
+
         central_period_band = np.logical_and(central_periods<=band_days_upper, central_periods>=band_days_lower)
+
+        # The following line will raise exception if len(central_period_band) <
+        # 2, and no data will be produced for this pixel.  The return value
+        # min_period_gap is never used, so is this being used as cryptic flow
+        # control.
         min_period_gap = np.diff(central_periods[central_period_band]).min()
         central_sig_periods = central_coherencies > 0.7795
         central_sig_periods_in_band = central_periods[np.logical_and(central_period_band, central_sig_periods)]
@@ -137,16 +144,23 @@ def check_significant_neighbours(spectra_data, lat_idx, lon_idx, band_days_lower
         resolution_bandwidth = central_spectra['resolution_bandwidth']
         min_periods = 1./((1./central_sig_periods_in_band) + 0.5*resolution_bandwidth)
         max_periods = 1./((1./central_sig_periods_in_band) - 0.5*resolution_bandwidth)
+
         for p, c in zip(neighbour_periods, neighbour_coherencies):
             for i, test_period in enumerate(central_sig_periods_in_band):
                 period_within_rbw = np.logical_and(p<=max_periods[i], p>=min_periods[i])
                 coh_sig_within_rbw = np.logical_and(period_within_rbw, c>0.7795)
                 significant_neighbours[i] += int(np.any(coh_sig_within_rbw))
+
         significant_periods = central_sig_periods_in_band[significant_neighbours>2.]
         significant_idcs = np.isin(central_periods, significant_periods)
+
         central_phases = central_spectra['phase'][::-1]
         central_amplitudes = central_spectra['amplitude'][::-1]
-        return central_periods[significant_idcs], central_phases[significant_idcs], central_coherencies[significant_idcs], central_amplitudes[significant_idcs]
+
+        return (central_periods[significant_idcs],
+                central_phases[significant_idcs],
+                central_coherencies[significant_idcs],
+                central_amplitudes[significant_idcs])
     else: # no cross-spectral output (likely due to insufficient obs, e.g. over ocean for VOD)
         return None
 

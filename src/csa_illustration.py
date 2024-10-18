@@ -197,7 +197,6 @@ def subplots(figures_dir, precip, vod, spectra):
 
     file_out = os.path.join(figures_dir, "csa_illustration_missing_data_newcolours")
     plt.savefig(f'{file_out}.png', bbox_inches='tight', dpi=400)
-    plt.savefig(f'{file_out}.pdf', bbox_inches='tight', dpi=600)
     plt.show()
 
 

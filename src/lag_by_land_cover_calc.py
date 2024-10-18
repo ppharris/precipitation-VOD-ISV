@@ -184,6 +184,9 @@ def subplots(output_dirs, lag_data, median_data, lag_bin_bounds,
 
     figures_dir = output_dirs["figures"]
 
+    if len(lag_data) > 2:
+        print("WARN: Only plotting phase for first two bands.")
+
     fig = plt.figure(figsize=(11, 9))
     gs = fig.add_gridspec(2, 4)
     ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree())
@@ -236,7 +239,7 @@ def subplots(output_dirs, lag_data, median_data, lag_bin_bounds,
     ax1.yaxis.set_major_formatter(lat_formatter)
     ax1.tick_params(labelsize=14)
     ax1.tick_params(axis='x', pad=5)
-    ax1.set_title("$\\bf{(a)}$" + ' Modal land cover class (Copernicus 2018)', fontsize=14)    
+    ax1.set_title("$\\bf{(a)}$" + ' Modal land cover class (Copernicus 2018)', fontsize=14)
 
     lc_codes = copernicus_land_cover(lat_south=-55, lat_north=55)
 
@@ -280,16 +283,19 @@ def subplots(output_dirs, lag_data, median_data, lag_bin_bounds,
         ("showall", all_lc_line),
     )
 
-    label2 = "_".join(label for label, switch in labels if switch)
-    label2 = "_" + label2 if label2 else label2
+    if filename_out is None:
+        label2 = "_".join(label for label, switch in labels if switch)
+        label2 = "_" + label2 if label2 else label2
+        filename = os.path.join(figures_dir,
+                                f"land_cover_subplots_global{label2}.{plot_type}")
+    else:
+        filename = os.path.join(figures_dir, filename_out)
 
-    filename = os.path.join(figures_dir,
-                            f"land_cover_subplots_global{label2}.{plot_type}")
     plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
 def plot_single_band_distribution(output_dirs, lag_data, median_data, band, lag_bin_bounds,
-                                  density=False, show_95ci=True, all_lc_line=False
+                                  density=False, show_95ci=True, all_lc_line=False,
                                   filename_out=None, plot_type="png"):
 
     lag_band = lag_data[band]
@@ -342,12 +348,15 @@ def plot_single_band_distribution(output_dirs, lag_data, median_data, band, lag_
         ("showall", all_lc_line),
     )
 
-    label1 = f"{band[0]}-{band[1]}"
-    label2 = "_".join(label for label, switch in labels if switch)
-    label2 = "_" + label2 if label2 else label2
+    if filename_out is None:
+        label1 = f"{band[0]}-{band[1]}"
+        label2 = "_".join(label for label, switch in labels if switch)
+        label2 = "_" + label2 if label2 else label2
+        filename = f"land_cover_lag_distribution_global_{label1}{label2}.{plot_type}"
+        filename = os.path.join(figures_dir, filename)
+    else:
+        filename = os.path.join(figures_dir, filename_out)
 
-    filename = os.path.join(figures_dir,
-                            f"land_cover_lag_distribution_global_{label1}{label2}.{plot_type}")
     plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
@@ -410,7 +419,8 @@ def plot_global_percent_validity(output_dirs, ax, validity, num_obs):
         ax.text(i, 102, f'({total_list[i]})', fontsize=10, horizontalalignment='center')
 
 
-def subplots_percent_validity(output_dirs, valid_data, num_data, plot_type="png"):
+def subplots_percent_validity(output_dirs, valid_data, num_data,
+                              filename_out=None, plot_type="png"):
 
     figures_dir = output_dirs["figures"]
 
@@ -444,9 +454,13 @@ def subplots_percent_validity(output_dirs, valid_data, num_data, plot_type="png"
     ax2.add_artist(bar_legend)
     ax1.set_ylabel(r'% of pixels', fontsize=16)
 
-    save_filename = os.path.join(figures_dir,
-                                 f'validity_percentage_by_land_cover_global_subplots_inundation.{plot_type}')
-    plt.savefig(save_filename, dpi=600)
+    if filename_out is None:
+        filename = os.path.join(figures_dir,
+                                f'validity_percentage_by_land_cover_global_subplots_inundation.{plot_type}')
+    else:
+        filename = filename_out
+
+    plt.savefig(filename, dpi=600)
 
 
 def main():

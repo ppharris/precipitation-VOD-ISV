@@ -185,7 +185,7 @@ def plot_time_series_multiyear(output_dirs, px_desc, ax_to_plot, label_letter):
     px_lag_error = px_lag_data['lag_error']
     px_period = px_lag_data['period']
     px_lag_label = f'+{px_lag:.1f}' if px_lag>0 else f'{px_lag:.1f}'
-    lag_summary = f'{px_seasons[px_desc]} phase diff.: {px_lag_label} $\pm$ {px_lag_error:.1f} days @ {px_period:.1f} day period'
+    lag_summary = f'{px_seasons[px_desc]} phase diff.: {px_lag_label} ± {px_lag_error:.1f} days @ {px_period:.1f} day period'
     ax2.big_ax.text(0.99, 0.05, lag_summary, transform=ax.transAxes, fontsize=12, 
                     color='#8C8888', ha='right', bbox=dict(facecolor='white', 
                     edgecolor='none', pad=1.0))
@@ -193,8 +193,8 @@ def plot_time_series_multiyear(output_dirs, px_desc, ax_to_plot, label_letter):
     bax.big_ax.set_title(f'({label_letter}) {px_lats[px_desc]}{deg}N, {px_lons[px_desc]}{deg}E', fontsize=14, color='k')
 
 
-def plot_time_series_multiyear_filtered(output_dir, px_desc, ax_to_plot, label_letter, window_size=5):
-    dates, imerg, vod = time_series_mask_dates(output_dir, px_desc)
+def plot_time_series_multiyear_filtered(output_dirs, px_desc, ax_to_plot, label_letter, window_size=5):
+    dates, imerg, vod = time_series_mask_dates(output_dirs, px_desc)
     filtered_imerg = filter_imerg_seasons(px_desc, imerg)
     filtered_dates, filtered_vod = filter_vod_seasons(px_desc, dates, imerg, vod, 
                                                       window_size=window_size)
@@ -238,7 +238,7 @@ def plot_time_series_multiyear_filtered(output_dir, px_desc, ax_to_plot, label_l
     px_lag_error = px_lag_data['lag_error']
     px_period = px_lag_data['period']
     px_lag_label = f'+{px_lag:.1f}' if px_lag>0 else f'{px_lag:.1f}'
-    lag_summary = f'{px_seasons[px_desc]} phase diff.: {px_lag_label} $\pm$ {px_lag_error:.1f} days @ {px_period:.1f} day period'
+    lag_summary = f'{px_seasons[px_desc]} phase diff.: {px_lag_label} ± {px_lag_error:.1f} days @ {px_period:.1f} day period'
     ax2.big_ax.text(0.99, 0.05, lag_summary, transform=ax.transAxes, fontsize=12, 
                     color='#8C8888', ha='right', bbox=dict(facecolor='white', 
                     edgecolor='none', pad=0.5))
@@ -282,7 +282,6 @@ def all_pixels(output_dirs, window_size=7):
     for pixel_desc, pixel_label in zip(pixels_to_plot, alphabet):
         plot_time_series_multiyear_filtered(output_dirs, pixel_desc, gs[i, 0], pixel_label, window_size=window_size)
         i += 1
-    plt.savefig(os.path.join(figures_dir, f'example_pixel_time_series_filtered_bin{int(window_size)}.pdf'), bbox_inches='tight')
     plt.savefig(os.path.join(figures_dir, f'example_pixel_time_series_filtered_bin{int(window_size)}.png'), bbox_inches='tight')
 
 

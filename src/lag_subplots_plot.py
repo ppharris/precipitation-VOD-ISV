@@ -13,6 +13,14 @@ import os
 import utils_load as ul
 
 
+def to_percent(numer, denom):
+    try:
+        result = numer * 100.0 / denom
+    except ZeroDivisionError:
+        result = np.nan
+    return result
+
+
 def global_plots_mean_estimate(output_dirs, plot_type="png"):
 
     lag_data_dir = output_dirs["lag_data"]

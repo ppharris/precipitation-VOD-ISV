@@ -8,7 +8,9 @@ from scipy.signal import argrelextrema
 import iris
 import os
 
-from read_data_iris import read_data_all_years, daily_anomalies_normalised, daily_anomalies, monthly_anomalies_normalised
+from read_data_iris import (check_dirs, read_data_all_years,
+                            daily_anomalies_normalised, daily_anomalies,
+                            monthly_anomalies_normalised)
 from bandpass_filters import lanczos_lowpass_filter_missing_data
 import utils_load as ul
 
@@ -263,6 +265,10 @@ def main():
     args = parser.parse_args()
     metadata = ul.load_yaml(args)
     output_dirs = metadata.get("output_dirs", None)
+
+    check_dirs(output_dirs,
+               output_names=("data_isv",),
+    )
 
     ###########################################################################
     # Run the analysis.
