@@ -56,11 +56,15 @@ def save_lags_to_file(output_dirs, bands, seasons):
         lag = lag_dict['lag']
         period = lag_dict['period']
         lag_error = lag_dict['lag_error']
+        coherency = lag_dict['coherency']
+
         no_csa = tile_global_validity(spectra_save_dir, season)
+
         np.save(os.path.join(lag_data_dir, f'lag_{season}_{lower}-{upper}.npy'), lag)
         np.save(os.path.join(lag_data_dir, f'lag_error_{season}_{lower}-{upper}.npy'), lag_error)
         np.save(os.path.join(lag_data_dir, f'period_{season}_{lower}-{upper}.npy'), period)
         np.save(os.path.join(lag_data_dir, f'no_csa_{season}_{lower}-{upper}.npy'), no_csa)
+        np.save(os.path.join(lag_data_dir, f'coherency_{season}_{lower}-{upper}.npy'), coherency)
 
     return
 
