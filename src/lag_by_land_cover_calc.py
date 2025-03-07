@@ -265,17 +265,14 @@ def subplots(output_dirs, lag_data, median_data, lag_bin_bounds,
 
         if show_95ci:
             median_lag_error = median_data[band]
-            ylims = ax.get_ylim()
-            y_range = ylims[1]-ylims[0]
-            ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
-            line_middle = [27.-median_lag_error, ylims[0]+0.92625*y_range]
-            ax.add_artist(ci_line)
-            ax.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
-            ax.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax.transData, ha='center')
+            ax.plot([-median_lag_error, median_lag_error], [0.9, 0.9], "k|-",
+                    transform=ax.get_xaxis_transform())
+            ax.text(0.5, 0.95, '95% CI', fontsize=8,
+                    transform=ax.transAxes, ha='center')
 
         ax.text(0.03, 0.9, f'({letter})', fontsize=14, fontweight="bold", transform=ax.transAxes)
         ax.text(0.03, 0.82, f'{band[0]}\u2013{band[1]} days', fontsize=14, transform=ax.transAxes)
-        ax.axvline(0, color='gray', alpha=0.3, zorder=0)
+        ax.axvline(0, color='gray', lw=0.5, alpha=0.3, zorder=0)
 
     labels = (
         ("density", density),
@@ -328,19 +325,17 @@ def plot_single_band_distribution(output_dirs, lag_data, median_data, band, lag_
         ax.set_ylabel('pdf', fontsize=16)
     else:
         ax.set_ylabel('number of pixels', fontsize=16)
+
     if show_95ci:
         median_lag_error = median_data[band]
-        ylims = ax.get_ylim()
-        y_range = ylims[1]-ylims[0]
-        ci_line = Rectangle((27.-2*median_lag_error, ylims[0]+0.925*y_range), 2*median_lag_error, 0.0025*y_range, edgecolor='k', facecolor='k')
-        line_middle = [27.-median_lag_error, ylims[0]+0.92625*y_range]
-        ax.add_artist(ci_line)
-        ax.plot(line_middle[0], line_middle[1], 'k-o', ms=2.5)
-        ax.text(line_middle[0], line_middle[1]-0.075*y_range, '95% CI', fontsize=12, transform=ax.transData, ha='center')
+        ax.plot([-median_lag_error, median_lag_error], [0.9, 0.9], "k|-",
+                transform=ax.get_xaxis_transform())
+        ax.text(0.5, 0.95, '95% CI', fontsize=8,
+                transform=ax.transAxes, ha='center')
 
     ax.set_title(f'{band[0]}\u2013{band[1]} days', fontsize=14)
-    ax.axvline(0, color='gray', alpha=0.3, zorder=0)
-    ax.legend(loc='upper left', fontsize=10, framealpha=1)
+    ax.axvline(0, color='gray', lw=0.5, alpha=0.3, zorder=0)
+    ax.legend(loc='upper left', fontsize=8, framealpha=1)
 
     labels = (
         ("density", density),
