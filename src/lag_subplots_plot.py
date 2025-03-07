@@ -70,7 +70,7 @@ def global_plots_mean_estimate(output_dirs, plot_type="png"):
         no_csa = np.load(os.path.join(lag_data_dir, f'no_csa_{seasons[i]}_{band_days_lower[i]}-{band_days_upper[i]}.npy'))
         invalid_but_csa = np.logical_and(~no_csa, np.isnan(lag))
         lag[invalid_but_csa] = -999
-        ax.coastlines(color='#999999',linewidth=0.1)
+        ax.coastlines(color='k',linewidth=0.2)
         ax.text(0.015, 0.825, f'{seasons[i]}', fontsize=16, transform=ax.transAxes)
         p = ax.pcolormesh(lon_bounds, lat_bounds, lag, transform=ccrs.PlateCarree(), 
                           cmap=cmap, norm=norm, rasterized=True)
@@ -210,7 +210,7 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot
         p = ax.pcolormesh(lon_bounds, lat_bounds, lag_plot,
                           cmap=cmap, norm=norm, rasterized=True)
 
-        ax.coastlines(color='#999999',linewidth=0.1)
+        ax.coastlines(color='k',linewidth=0.2)
         ax.set_extent((-180, 180, -55, 55), crs=projection)
         ax.set_xticks(np.arange(-90, 91, 90), crs=projection)
         ax.set_yticks(np.arange(-50, 51, 50), crs=projection)
