@@ -21,6 +21,7 @@ import itertools
 from multiprocessing import Pool
 
 from read_csagan_saved_output import read_region_data
+import utils_load as ul
 
 
 _global_shared_data = {}
@@ -334,6 +335,44 @@ def run_neighbourhood_averaging(lats, lons):
     return neighbourhood_averages
 
 
+def run_all_processing(output_dirs, tiles, seasons, bands):
+    spectra_dir = output_dirs["spectra"]
+    output_dir = output_dirs["spectra_filtered"]
+
+    for tile, tile_bounds in tiles.items():
+        for season in seasons:
+            spectra_file = os.path.join(
+                spectra_dir,
+                f"{tile}_IMERG_VOD_spectra_X_{season}_mask_sw_best85.pkl"
+            )
+            print(f"Reading {spectra_file}")
+
+            lats, lons, spectra = read_region_data(
+                spectra_file, tile, *tile_bounds, resolution=0.25
+            )
+
+            for (bl, bu) in bands:
+                # Load data into the global dictionary for sharing across the
+                # multiprocessing pool.
+                global _global_shared_data
+                _global_shared_data["spectra"] = spectra
+                _global_shared_data["band_days_lower"] = bl
+                _global_shared_data["band_days_upper"] = bu
+
+                print(f"Processing band ({bl}-{bu})")
+                neighbourhood_averages = run_neighbourhood_averaging(lats, lons)
+
+                output_file = os.path.join(
+                    output_dir,
+                    f"spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{bl}-{bu}.pkl"
+                )
+                print(f"Writing {output_file}")
+
+                with open(output_file, 'wb') as f:
+                    pickle.dump(neighbourhood_averages, f)
+
+    return
+
 def check_filename(filename, varnames):
     """Check whether you remembered to change the filename for the CSA output... not foolproof..."""
     components = [w for v in varnames for w in v.split('_')]
@@ -376,39 +415,26 @@ def parse_args():
 
 def main():
 
-    args = parse_args()
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
 
-    input_spectra_filename = args.input_file
-    output_filename = args.output_file
-    band_days_lower = args.band_lower
-    band_days_upper = args.band_upper
-    tile = args.tile
+    metadata = ul.load_yaml(args)
 
-    # Coordinates of tile extent
-    lon_west = -180
-    lon_east = 180
-    tile_lats_south = {'tropics': -35, 'northern': 25, 'southern': -60}
-    tile_lats_north = {'tropics': 35, 'northern': 65, 'southern': -25}
-    lat_south = tile_lats_south[tile]
-    lat_north = tile_lats_north[tile]
+    output_dirs = metadata.get("output_dirs", None)
+    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
+    seasons = metadata["lags"].get("seasons", None)
+    tiles = metadata["spectra"].get("tiles", None)
 
-    print(input_spectra_filename)
+    ul.check_dirs(output_dirs,
+                  input_names=("spectra",),
+                  output_names=("spectra_filtered",))
 
-    lats, lons, spectra = read_region_data(input_spectra_filename, tile, lon_west, lon_east, lat_south, lat_north, resolution=0.25)
-    no_csa = ~(spectra == {})
-    print(no_csa.sum(), no_csa.size)
+    run_all_processing(output_dirs, tiles, seasons, bands)
 
-    # Load data into the global dictionary for sharing across the
-    # multiprocessing pool.
-    global _global_shared_data
-    _global_shared_data["spectra"] = spectra
-    _global_shared_data["band_days_lower"] = band_days_lower
-    _global_shared_data["band_days_upper"] = band_days_upper
-
-    neighbourhood_averages = run_neighbourhood_averaging(lats, lons)
-
-    with open(output_filename, 'wb') as f:
-        pickle.dump(neighbourhood_averages, f)
+    return
 
 
 if __name__ == '__main__':

@@ -11,6 +11,12 @@ output_dirs:
   data_isv_comp: /path/to/output/dir/data_isv_comp
   figures: /path/to/output/dir/figures
 
+spectra:
+  tiles:
+    tropics: [-180, 180, -35, 35]
+    northern: [-180, 180, 25, 65]
+    southern: [-180, 180, -60, -25]
+
 lags:
   bands:
     - [25, 40]
