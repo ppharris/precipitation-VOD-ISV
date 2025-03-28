@@ -2,8 +2,9 @@ name: cpeo
 channels:
   - conda-forge
 dependencies:
-  - iris
+  - iris>3.10  # required to work with cartopy 0.24.0
   - matplotlib<3.8  # required to work with brokenaxes 0.5.0.
+  - pip
   - python=3
   - psutil
   - tqdm
