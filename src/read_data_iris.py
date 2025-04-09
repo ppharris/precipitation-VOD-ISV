@@ -1,5 +1,6 @@
 import iris
 import iris.cube
+from iris.time import PartialDateTime
 from iris.util import equalise_attributes
 import os
 import numpy as np
@@ -7,6 +8,21 @@ import xarray as xr
 import cf_units
 import dask.array as da
 from scipy.stats import linregress
+
+
+def get_date_constraint(start_year=None, start_month=None, start_day=None,
+                        end_year=None, end_month=None, end_day=None):
+    """Return an iris.Constraint of a coord named 'time' between two dates.
+
+    The dates are constructed from the arguments (start_year, start_month,
+    start_day) and (end_year, end_month, end_day) and are inclusive.
+    """
+
+    start_date = PartialDateTime(year=start_year, month=start_month, day=start_day)
+    end_date = PartialDateTime(year=end_year, month=end_month, day=end_day)
+    date_range = iris.Constraint(time=lambda cell: start_date <= cell.point <= end_date)
+
+    return date_range
 
 
 def data_directory(dataset, band=None, regridded=False, mask_surface_water=False):
