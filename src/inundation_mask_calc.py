@@ -4,6 +4,7 @@ import iris.coord_categorisation
 
 from read_data_iris import read_data_all_years, get_date_constraint
 import utils_load as ul
+from utils_datasets import CCI_SM, VOD, VOD_SW
 
 
 def save_number_seasonal_vod_obs(output_dirs, vod_no_sw_mask, vod_sw_mask, season):
@@ -30,8 +31,9 @@ def save_ssm_seasonal_obs_numbers(output_dirs, seasons, min_year=2000, max_year=
         date_range = get_date_constraint(start_year=min_year, start_month=1,
                                          end_year=max_year, end_month=12)
 
-    ssm = read_data_all_years('SM', lon_west=-180, lon_east=180, 
+    ssm = read_data_all_years(CCI_SM, lon_west=-180, lon_east=180,
                               lat_south=-55, lat_north=55, min_year=min_year, max_year=max_year)
+
     ssm = ssm.extract(date_range)
     iris.coord_categorisation.add_season(ssm, 'time', seasons=seasons, name='clim_season')
 
@@ -48,14 +50,12 @@ def save_all_seasonal_obs_numbers(output_dirs, seasons, min_year=2000, max_year=
         date_range = get_date_constraint(start_year=min_year, start_month=1,
                                          end_year=max_year, end_month=12)
 
-    vod_no_sw_mask = read_data_all_years('VOD', band='X', lon_west=-180, lon_east=180, 
-                                         lat_south=-55, lat_north=55,
-                                         min_year=min_year, max_year=max_year,
-                                         mask_surface_water=False)
-    vod_sw_mask = read_data_all_years('VOD', band='X', lon_west=-180, lon_east=180, 
-                                      lat_south=-55, lat_north=55,
-                                      min_year=min_year, max_year=max_year,
-                                      mask_surface_water=True)
+    vod_no_sw_mask = read_data_all_years(VOD, min_year=min_year, max_year=max_year,
+                                         lon_west=-180, lon_east=180,
+                                         lat_south=-55, lat_north=55)
+    vod_sw_mask = read_data_all_years(VOD_SW, min_year=min_year, max_year=max_year,
+                                      lon_west=-180, lon_east=180,
+                                      lat_south=-55, lat_north=55)
 
     vod_no_sw_mask = vod_no_sw_mask.extract(date_range)
     vod_sw_mask = vod_sw_mask.extract(date_range)

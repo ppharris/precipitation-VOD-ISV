@@ -15,6 +15,7 @@ import time
 
 from read_data_iris import read_data_all_years, read_land_sea_mask
 from datetime_utils import decimal_year_to_datetime, days_since_1970_to_decimal_year
+from utils_datasets import IMERG_RG, VOD_SW
 
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).
@@ -29,14 +30,6 @@ from datetime_utils import decimal_year_to_datetime, days_since_1970_to_decimal_
 
 
 init_dict = {} # Dictionary to contain data that needs sharing between multiprocessing workers
-
-# Dictionaries for units and long names of variables
-variable_units = {'IMERG': 'mm/day',
-                  'VOD': 'unitless'}
-
-
-variable_names = {'IMERG': 'Precipitation (IMERG)',
-                  'VOD': 'Vegetation optical depth'}
 
 
 def parse_args():
@@ -164,7 +157,7 @@ def mask_to_months(dates, data, month_list=np.arange(12)+1):
     return masked_data
 
 
-def make_data_array(data_variable, band='Ku', mask_surface_water=False,
+def make_data_array(data_variable,
                     lon_west=-180, lon_east=180, lat_south=-30, lat_north=30,
                     min_year=2000, max_year=2018, month_list=np.arange(12)+1, percent_readings_required=30.):
     """
@@ -173,13 +166,8 @@ def make_data_array(data_variable, band='Ku', mask_surface_water=False,
     See read_data_iris documentation for list of supported variables.
     Parameters
     ----------
-    data_variable: str
-        Label for data to be loaded, e.g. 'IMERG', 'VOD'
-    band (kwarg): str
-        Frequency band for VOD observations. Default 'Ku'. Ignored if data_variable is not 'VOD'.
-    mask_surface_water (kwarg): bool
-        Mask periods of VOD data where retrivals are affected by transient inundation events.
-        Default False. Ignored if data_variable is not 'VOD'.
+    data_variable: utils_dataset.Dataset object
+        Helper object for the dataset to be loaded.
     lon_west (kwarg): int or float
         Longitude of western boundary of area to load (in degrees east). Default -180.
     lon_east (kwarg): int or float
@@ -208,8 +196,8 @@ def make_data_array(data_variable, band='Ku', mask_surface_water=False,
     lons: numpy array (1D, float)
         Longitudes of pixel centres (degrees east)
     """
-    regridded = (data_variable == 'IMERG')
-    data = read_data_all_years(data_variable, band=band, regridded=regridded, mask_surface_water=mask_surface_water,
+
+    data = read_data_all_years(data_variable,
                                min_year=min_year, max_year=max_year,
                                lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
     dates = data.coord('time').points
@@ -225,7 +213,7 @@ def make_data_array(data_variable, band='Ku', mask_surface_water=False,
     return dates, data_array_mask_season, lats, lons
 
 
-def make_data_arrays(reference_variable, response_variable, band='Ku', mask_surface_water=False,
+def make_data_arrays(reference_variable, response_variable,
                      lon_west=-180, lon_east=180, lat_south=-30, lat_north=30, 
                      min_year=2002, max_year=2016, return_coords=False,
                      monthly_anomalies=False, flip_reference_sign=False, flip_response_sign=False,
@@ -238,13 +226,8 @@ def make_data_arrays(reference_variable, response_variable, band='Ku', mask_surf
     so that output from this function can be fed straight to the cross-spectral analysis.
     Parameters
     ----------
-    data_variable: str
-        Label for data to be loaded, e.g. 'IMERG', 'VOD'
-    band (kwarg): str
-        Frequency band for VOD observations. Default 'Ku'. Ignored if data_variable is not 'VOD'.
-    mask_surface_water (kwarg): bool
-        Mask periods of VOD data where retrivals are affected by transient inundation events.
-        Default False. Ignored if data_variable is not 'VOD'.
+    data_variable: utils_dataset.Dataset object
+        Helper object for the dataset to be loaded.
     lon_west (kwarg): int or float
         Longitude of western boundary of area to load (in degrees east). Default -180.
     lon_east (kwarg): int or float
@@ -291,14 +274,12 @@ def make_data_arrays(reference_variable, response_variable, band='Ku', mask_surf
     lons: numpy array (1D, float)
         Longitudes of pixel centres (degrees east)
     """
-    reference_dates, reference_array, lats, lons = make_data_array(reference_variable, band=band,
-                                                                   mask_surface_water=mask_surface_water,
+    reference_dates, reference_array, lats, lons = make_data_array(reference_variable,
                                                                    lon_west=lon_west, lon_east=lon_east, 
                                                                    lat_south=lat_south, lat_north=lat_north,
                                                                    min_year=min_year, max_year=max_year, month_list=month_list,
                                                                    percent_readings_required=percent_readings_required)
-    response_dates, response_array, lats, lons = make_data_array(response_variable, band=band, 
-                                                                 mask_surface_water=mask_surface_water,
+    response_dates, response_array, lats, lons = make_data_array(response_variable,
                                                                  lon_west=lon_west, lon_east=lon_east, 
                                                                  lat_south=lat_south, lat_north=lat_north,
                                                                  min_year=min_year, max_year=max_year, month_list=month_list,
@@ -351,10 +332,10 @@ def create_input_file(reference_variable, response_variable, dates, reference_da
     for cross-spectral analysis by csagan.
     Parameters
     ----------
-    reference_variable: str
-        Name of reference variable
-    response_variable: str
-        Name of response variable
+    reference_variable: utils_dataset.Dataset object
+        Helper object for the reference dataset to be loaded.
+    response_variable: utils_dataset.Dataset object
+        Helper object for the response dataset to be loaded.
     dates: list or numpy array
         Time stamps of data as decimal dates
     reference_data: numpy array
@@ -376,17 +357,17 @@ def create_input_file(reference_variable, response_variable, dates, reference_da
     valid_responses = response_data[valid_idcs].data
     
     f = Dataset(save_filename, 'w', format='NETCDF4')
-    f.description = f'{variable_names[reference_variable]} and {variable_names[response_variable]} daily time series'
+    f.description = f'{reference_variable.name} and {response_variable.name} daily time series'
     today = datetime.today()
     f.history = "Created " + today.strftime("%d/%m/%y")
     f.createDimension('time', None)
     days = f.createVariable('Time', 'f8', 'time')
     days[:] = valid_dates
     days.units = 'years'
-    data_response = f.createVariable(f'{response_variable}', 'f4', ('time'))
-    data_response.units = variable_units[response_variable]
-    data_reference = f.createVariable(f'{reference_variable}', 'f4', ('time'))
-    data_reference.units = variable_units[reference_variable]
+    data_response = f.createVariable(response_variable.varname, 'f4', ('time'))
+    data_response.units = response_variable.units
+    data_reference = f.createVariable(reference_variable.varname, 'f4', ('time'))
+    data_reference.units = reference_variable.units
     data_response[:] = valid_responses
     data_reference[:] = valid_references
     f.close()
@@ -609,15 +590,15 @@ def reference_response_spectra(exe_filename, work_directory, process_id,
         coherency, phase difference and its 95% confidence interval bounds, amplitude ratio
         and its 95% confidence interval bounds
     """
-    data_filename = f'{work_directory}/{reference_variable}_{response_variable}_input-{process_id}.nc'
+    data_filename = f'{work_directory}/{reference_variable.name}_{response_variable.name}_input-{process_id}.nc'
     try:
         create_input_file(reference_variable, response_variable, dates, reference_data, response_data,
                           data_filename)
-        spectra_results = default_run(exe_filename, reference_variable, response_variable, data_filename)
+        spectra_results = default_run(exe_filename, reference_variable.varname, response_variable.varname, data_filename)
         delete_csagan_output(process_id, directory='.')
-        delete_csagan_input(process_id, reference_variable, response_variable, directory=work_directory)
-    except:
-        print(f'***NO SPECTRA CREATED FOR PIXEL {process_id}***')
+        delete_csagan_input(process_id, reference_variable.name, response_variable.name, directory=work_directory)
+    except Exception as e:
+        print(f'***NO SPECTRA CREATED FOR PIXEL {process_id}***: {e}')
         spectra_results = {}
     return spectra_results
 
@@ -787,15 +768,14 @@ def main():
 
     print(f'region: {region_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg')
 
-    reference_variable = 'IMERG'
-    response_variable = 'VOD'
-    band = 'X' #only relevant for VOD. Will be ignored for other variables
+    reference_variable = IMERG_RG
+    response_variable = VOD_SW
+
     months = season_from_abbr(season)
     # Create arrays of time and data for both reference and response variables.
     # Don't analyse pixels with fewer than percent_readings_required % of valid obs over all timesteps
     # Use flip_response_sign if a positive change in reference_variable leads to a negative change in response_variable (otherwise output lags won't make sense)
     decimal_dates, reference_array, response_array, lats, lons = make_data_arrays(reference_variable, response_variable,
-                                                                                  band=band, mask_surface_water=True, #mask_surface_water also only relevant for VOD
                                                                                   lon_west=lon_west, lon_east=lon_east,
                                                                                   lat_south=lat_south, lat_north=lat_north,
                                                                                   min_year=2000, max_year=2018,
@@ -836,9 +816,7 @@ def main():
     dud_pixels = (results=={}).sum(axis=1).sum(axis=0)
     print(f'completed {total_pixels} pixels in {end-start} seconds, {dud_pixels} pixels did not have enough data for computation')
 
-    band_label = f'_{band}' if (reference_variable == 'VOD' or response_variable == 'VOD') else ''
-
-    file_tmp = f'{region_name}_{reference_variable}_{response_variable}_spectra{band_label}_{season}_mask_sw_best85.pkl'
+    file_tmp = f'{region_name}_{reference_variable.name}_{response_variable.name}_spectra_{season}_mask_sw_best85.pkl'
     path_tmp = os.path.join(output_dir, file_tmp)
 
     print(f"Writing output to {path_tmp}")

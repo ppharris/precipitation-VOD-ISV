@@ -8,6 +8,7 @@ import os
 from read_data_iris import crop_cube, read_data_all_years
 from bandpass_filters import bandpass_filter_missing_data
 from plot_utils import binned_cmap
+from utils_datasets import IMERG_RG
 
 
 def get_data():
@@ -15,7 +16,7 @@ def get_data():
     lon_east = 180
     lat_south= -55
     lat_north = 55
-    imerg = read_data_all_years('IMERG', regridded=True, 
+    imerg = read_data_all_years(IMERG_RG,
                                 lon_west=lon_west, lon_east=lon_east,
                                 lat_south=lat_south, lat_north=lat_north,
                                 min_year=2000, max_year=2018)

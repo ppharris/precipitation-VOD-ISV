@@ -13,6 +13,7 @@ from read_data_iris import (check_dirs, read_data_all_years,
                             monthly_anomalies_normalised)
 from bandpass_filters import lanczos_lowpass_filter_missing_data
 import utils_load as ul
+from utils_datasets import VOD_SW, IMERG_RG, CCI_SM, NDVI_AQUA, NDVI_TERRA
 
 
 def remove_aux_coords(cube):
@@ -79,8 +80,9 @@ def save_anomalies(output_dirs, hem):
     ###########################################################################
     # VODCA vegetation optical depth
     ###########################################################################
-    vod = read_data_all_years('VOD', band='X', min_year=2000, max_year=2018,
-                              lon_west=-180, lon_east=180, lat_south=lat_south, lat_north=lat_north, mask_surface_water=True)
+    vod = read_data_all_years(VOD_SW, min_year=2000, max_year=2018,
+                              lon_west=-180, lon_east=180,
+                              lat_south=lat_south, lat_north=lat_north)
 
     vod_single = process_in_chunks(daily_anomalies_normalised, vod, latitude_chunksize, detrend=True)
     file_out = os.path.join(save_dir, f'daily_detrended_vod_norm_anom_singleprecision_{hem}.nc')
@@ -93,8 +95,9 @@ def save_anomalies(output_dirs, hem):
     ###########################################################################
     # IMERG precip
     ###########################################################################
-    imerg = read_data_all_years('IMERG', regridded=True, min_year=2000, max_year=2018,
-                                lon_west=-180, lon_east=180, lat_south=lat_south, lat_north=lat_north)
+    imerg = read_data_all_years(IMERG_RG, min_year=2000, max_year=2018,
+                                lon_west=-180, lon_east=180,
+                                lat_south=lat_south, lat_north=lat_north)
 
     imerg_single = process_in_chunks(daily_anomalies_normalised, imerg, latitude_chunksize, detrend=True)
     file_out = os.path.join(save_dir, f'daily_detrended_imerg_norm_anom_singleprecision_{hem}.nc')
@@ -114,8 +117,9 @@ def save_anomalies(output_dirs, hem):
     ###########################################################################
     # SM soil moisture
     ###########################################################################
-    sm = read_data_all_years('SM', min_year=2000, max_year=2018,
-                             lon_west=-180, lon_east=180, lat_south=lat_south, lat_north=lat_north)
+    sm = read_data_all_years(CCI_SM, min_year=2000, max_year=2018,
+                             lon_west=-180, lon_east=180,
+                             lat_south=lat_south, lat_north=lat_north)
 
     sm_single = process_in_chunks(daily_anomalies_normalised, sm, latitude_chunksize, detrend=True)
     file_out = os.path.join(save_dir, f'daily_detrended_sm_norm_anom_singleprecision_{hem}.nc')
@@ -146,8 +150,9 @@ def save_ndvi_anomalies(output_dirs, hem):
         "chunksizes": (1, 240, 1440),
     }
 
-    aqua = read_data_all_years('NDVI', modis_sensor='aqua', min_year=2000, max_year=2018,
-                               lon_west=-180, lon_east=180, lat_south=lat_south, lat_north=lat_north)
+    aqua = read_data_all_years(NDVI_AQUA, min_year=2000, max_year=2018,
+                               lon_west=-180, lon_east=180,
+                               lat_south=lat_south, lat_north=lat_north)
 
     aqua_single = process_in_chunks(monthly_anomalies_normalised, aqua, latitude_chunksize, detrend=True)
     file_out = os.path.join(save_dir, f'monthly_detrended_ndvi_aqua_norm_anom_singleprecision_{hem}.nc')
@@ -156,8 +161,9 @@ def save_ndvi_anomalies(output_dirs, hem):
     del aqua_single
     gc.collect()
 
-    terra = read_data_all_years('NDVI', modis_sensor='terra', min_year=2000, max_year=2018,
-                                lon_west=-180, lon_east=180, lat_south=lat_south, lat_north=lat_north)
+    terra = read_data_all_years(NDVI_TERRA, min_year=2000, max_year=2018,
+                                lon_west=-180, lon_east=180,
+                                lat_south=lat_south, lat_north=lat_north)
 
     terra_single = process_in_chunks(monthly_anomalies_normalised, terra, latitude_chunksize, detrend=True)
     file_out = os.path.join(save_dir, f'monthly_detrended_ndvi_terra_norm_anom_singleprecision_{hem}.nc')

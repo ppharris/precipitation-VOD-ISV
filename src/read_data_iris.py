@@ -25,38 +25,6 @@ def get_date_constraint(start_year=None, start_month=None, start_day=None,
     return date_range
 
 
-def data_directory(dataset, band=None, regridded=False, mask_surface_water=False):
-    if dataset == 'VOD' and band is None:
-        raise ValueError('Must supply band for VOD data')
-    surface_water_dir = mask_surface_water * 'filtered_surface_water/'
-    directories = {'IMERG': '/localscratch/wllf029/bethar/IMERG',
-                   'VOD': f'/prj/nceo/bethar/VODCA_global/filtered/{surface_water_dir}{band}-band',
-                   'SM': '/prj/swift/ESA_CCI_SM/year_files_v6.1_combined_GLOBAL/',
-                   'IMERG_regridded': '/prj/nceo/bethar/IMERG/regrid_p25_global',
-                   'SWAMPS': '/prj/nceo/bethar/SWAMPS_daily',
-                   'NDVI': '/prj/nceo/bethar/MODIS-NDVI-16day'}
-    dataset_key = dataset+'_regridded' if regridded else dataset
-    directory = directories[dataset_key]
-    return directory
-     
-    
-def data_filename(dataset, year, band=None, modis_sensor=None, regridded=False, mask_surface_water=False):
-    if dataset == 'VOD' and band is None:
-        raise ValueError('Must supply band for VOD data')
-    if dataset == 'NDVI' and modis_sensor is None:
-        raise ValueError('Must supply MODIS sensor (aqua/terra) for NDVI data')
-    surface_water_fname = mask_surface_water * 'surface_water_'
-    filenames = {'IMERG': f'IMERG.V06.{year}.daily.nc4',
-                 'VOD': f'VOD-{band}-band_filtered_{surface_water_fname}{year}.nc',
-                 'SM': f'{year}_volumetric_soil_moisture_daily.nc',
-                 'IMERG_regridded': f'IMERG.V06.{year}.daily_p25.nc',
-                 'SWAMPS': f'SWAMPS-{year}.nc',
-                 'NDVI': f'/prj/nceo/bethar/MODIS-NDVI-16day/modis_{modis_sensor}_16-day_ndvi_0p25_{year}.nc'}
-    dataset_key = dataset+'_regridded' if regridded else dataset
-    file_path = os.path.join(data_directory(dataset, band=band, regridded=regridded, mask_surface_water=mask_surface_water), filenames[dataset_key])
-    return file_path
-
-
 def crop_cube(cube, lon_west, lon_east, lat_south, lat_north):
     return cube.extract(iris.Constraint(latitude=lambda cell: lat_south-1e-6 < cell < lat_north+1e-6,
                                         longitude=lambda cell: lon_west-1e-6 < cell < lon_east+1e-6))
@@ -127,20 +95,9 @@ def read_land_sea_mask(lon_west=-180, lon_east=180, lat_south=-90, lat_north=90,
     return land_sea_data_crop.data
 
     
-def read_data_year(dataset, year, band=None, modis_sensor=None, regridded=False, mask_surface_water=False,
-                   regrid_cube=None, lon_west=-180, lon_east=180, lat_south=-30, lat_north=30):
-    if dataset == 'VOD' and band is None:
-        raise ValueError('Must supply band for VOD data')
-    if dataset == 'NDVI' and modis_sensor is None:
-        raise ValueError('Must supply MODIS sensor (aqua/terra) for NDVI data')
-    field_keys = {'IMERG': 'precipitationCal',
-                  'VOD': 'vod',
-                  'SM': 'sm',
-                  'SWAMPS': 'frac_surface_water',
-                  'NDVI': 'NDVI'}
-    filename = data_filename(dataset, year, band=band, modis_sensor=modis_sensor, regridded=regridded, 
-                             mask_surface_water=mask_surface_water)
-    data_cube = iris.load_cube(filename, field_keys[dataset])
+def read_data_year(dataset, year, regrid_cube=None, lon_west=-180, lon_east=180, lat_south=-30, lat_north=30):
+    filename = dataset.get_path(year)
+    data_cube = iris.load_cube(filename, dataset.varname)
     data_fix = fix_coords(data_cube)
     data_crop = crop_cube(data_fix, lon_west, lon_east, lat_south, lat_north)
     if regrid_cube:
@@ -149,41 +106,17 @@ def read_data_year(dataset, year, band=None, modis_sensor=None, regridded=False,
     return data_crop
      
 
-def read_data_all_years(dataset, band=None, modis_sensor=None, regridded=False,
-                        mask_surface_water=False, regrid_cube=None,
-                        min_year=2002, max_year=2016,
+def read_data_all_years(dataset, regrid_cube=None, min_year=2002, max_year=2016,
                         lon_west=-180, lon_east=180, lat_south=-30, lat_north=30):
     years = np.arange(min_year, max_year + 1, dtype=np.int16)
-    all_years = iris.cube.CubeList([read_data_year(dataset, year, band=band, modis_sensor=modis_sensor,
-                                                   mask_surface_water=mask_surface_water,
+    all_years = iris.cube.CubeList([read_data_year(dataset, year, regrid_cube=regrid_cube,
                                                    lon_west=lon_west, lon_east=lon_east,
-                                                   regridded=regridded, regrid_cube=regrid_cube,
                                                    lat_south=lat_south, lat_north=lat_north) for year in years])
     equalise_attributes(all_years)
     all_data = all_years.concatenate_cube()
-    if dataset in ['IMERG', 'NDVI']:
+    if dataset.name in ['IMERG', 'NDVI']:
         all_data.transpose([0, 2, 1])
     return all_data
-
-
-def write_regridded_datasets(band, lon_west=-180, lon_east=180, lat_south=-30, lat_north=30, 
-                             min_year=2002, max_year=2016):
-    vod = read_data_all_years('VOD', band=band, min_year=min_year, max_year=max_year,
-                              lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
-    years = np.arange(min_year, max_year + 1, dtype=np.int16)
-    for year in years:
-        imerg_year = read_data_year('IMERG', year, regrid_cube=vod,
-                                    lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
-        iris.save(imerg_year, f'/prj/nceo/bethar/IMERG/regrid_p25_global/IMERG.V06.{year}.daily_p25.nc')
-        
-        
-def all_regridded_datasets(band, lon_west=-180, lon_east=180, lat_south=-30, lat_north=30, 
-                           min_year=2002, max_year=2016):
-    vod = read_data_all_years('VOD', band=band, min_year=min_year, max_year=max_year,
-                              lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
-    imerg = read_data_all_years('IMERG', band=band, regridded=True, min_year=min_year, max_year=max_year,
-                                 lon_west=lon_west, lon_east=lon_east, lat_south=lat_south, lat_north=lat_north)
-    return vod, imerg
 
 
 def detrend_missing_values(data):

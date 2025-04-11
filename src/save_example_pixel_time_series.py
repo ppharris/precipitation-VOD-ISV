@@ -5,10 +5,11 @@ import numpy.ma as ma
 import xarray as xr
 
 from read_data_iris import read_data_all_years
+from utils_datasets import IMERG_RG, VOD_SW
 
 
 def get_imerg_vod_pixel(px_lat, px_lon):
-    imerg = read_data_all_years('IMERG', regridded=True, min_year=2000, max_year=2018, 
+    imerg = read_data_all_years(IMERG_RG, min_year=2000, max_year=2018,
                                 lon_west=px_lon-0.5, lon_east=px_lon+0.5,
                                 lat_south=px_lat-0.5, lat_north=px_lat+0.5)
     imerg_lat_idx = np.argmin(np.abs(imerg.coord('latitude').points - px_lat))
@@ -25,11 +26,9 @@ def get_imerg_vod_pixel(px_lat, px_lon):
     sqrt_imerg_anom = dxr.groupby("time.dayofyear") - dxr.groupby("time.dayofyear").mean("time")
     sqrt_imerg_anom_px = sqrt_imerg_anom.data.compute()
 
-
-    vod = read_data_all_years('VOD', band='X', min_year=2000, max_year=2018,
+    vod = read_data_all_years(VOD_SW, min_year=2000, max_year=2018,
                               lon_west=px_lon-0.5, lon_east=px_lon+0.5,
-                              lat_south=px_lat-0.5, lat_north=px_lat+0.5,
-                              mask_surface_water=True)
+                              lat_south=px_lat-0.5, lat_north=px_lat+0.5)
     vod_lat_idx = np.argmin(np.abs(vod.coord('latitude').points - px_lat))
     vod_lon_idx = np.argmin(np.abs(vod.coord('longitude').points - px_lon))
     vod_px = vod[:, vod_lat_idx, vod_lon_idx].data

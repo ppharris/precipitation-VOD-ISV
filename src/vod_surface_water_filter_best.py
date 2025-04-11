@@ -9,6 +9,7 @@ from scipy.stats import t as tdist
 import warnings
 
 from read_data_iris import read_data_all_years
+from utils_datasets import VOD, CCI_SM, SWAMPS
 
 
 timesteps = 6940
@@ -74,13 +75,13 @@ def get_corr(data1, data2, min_readings=3, sig_p=1., return_p=False):
 
 
 def filter_tile(lon_west, lon_east, lat_south, lat_north):
-    vod = read_data_all_years('VOD', band='X', min_year=2000, max_year=2018,
+    vod = read_data_all_years(VOD, min_year=2000, max_year=2018,
                                  lon_west=lon_west, lon_east=lon_east,
                                  lat_north=lat_north, lat_south=lat_south)
-    sm = read_data_all_years('SM', min_year=2000, max_year=2018,
+    sm = read_data_all_years(CCI_SM, min_year=2000, max_year=2018,
                              lon_west=lon_west, lon_east=lon_east,
                              lat_north=lat_north, lat_south=lat_south)
-    swamps = read_data_all_years('SWAMPS', min_year=2000, max_year=2018,
+    swamps = read_data_all_years(SWAMPS, min_year=2000, max_year=2018,
                                  lon_west=lon_west, lon_east=lon_east,
                                  lat_north=lat_north, lat_south=lat_south)
     vod_data = ma.filled(vod.data, np.nan)
