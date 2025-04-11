@@ -59,8 +59,8 @@ def save_all_seasonal_obs_numbers(output_dirs, seasons, min_year=2000, max_year=
 
     vod_no_sw_mask = vod_no_sw_mask.extract(date_range)
     vod_sw_mask = vod_sw_mask.extract(date_range)
-    iris.coord_categorisation.add_season(vod_no_sw_mask, 'time', season=seasons, name='clim_season')
-    iris.coord_categorisation.add_season(vod_sw_mask, 'time', season=seasons, name='clim_season')
+    iris.coord_categorisation.add_season(vod_no_sw_mask, 'time', seasons=seasons, name='clim_season')
+    iris.coord_categorisation.add_season(vod_sw_mask, 'time', seasons=seasons, name='clim_season')
 
     for season in seasons:
         save_number_seasonal_vod_obs(output_dirs, vod_no_sw_mask, vod_sw_mask, season)
