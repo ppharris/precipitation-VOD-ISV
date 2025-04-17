@@ -83,6 +83,11 @@ NDVI_AQUA = Dataset("NDVI", "NDVI", "1",
 NDVI_TERRA = Dataset("NDVI", "NDVI", "1",
                     path_pattern="/prj/nceo/bethar/MODIS-NDVI-16day/modis_terra_16-day_ndvi_0p25_{year}.nc")
 
+FLUXCOM_JRA = Dataset("FLUXCOM-JRA-025", "GPP", "g m-2 d-1",
+                      path_pattern="/prj/nceo/ppha/cpeo/data/fluxcom/GPP.RS_METEO.FP-ALL.MLM-ALL.METEO-CRUJRA_v1.720_360.daily.{year}.nc")
+
+FLUXCOM_ERA = Dataset("FLUXCOM-ERA-025", "GPP", "g m-2 d-1",
+                      path_pattern="/prj/nceo/ppha/cpeo/data/fluxcom/GPP.RS_METEO.FP-ALL.MLM-ALL.METEO-ERA5.720_360.daily.{year}.nc")
 
 if __name__ == "__main__":
     pass
