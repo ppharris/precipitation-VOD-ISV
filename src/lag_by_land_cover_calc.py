@@ -509,7 +509,7 @@ def main():
                               plot_type=plot_type)
 
     for band in bands:
-        filename_out = f"phase_{band[0]}-{band[1]}.png"
+        filename_out = f"phase_{band[0]}-{band[1]}.{plot_type}"
         print(filename_out)
         plot_single_band_distribution(output_dirs, lag_data, median_data, band,
                                       lag_bin_bounds[band],
