@@ -144,55 +144,6 @@ def filter_vod_seasons(px_desc, dates, all_imerg, all_vod, window_size=5):
     return filtered_dates, filtered_vod
 
 
-def plot_time_series_multiyear(output_dirs, px_desc, ax_to_plot, label_letter):
-    dates, imerg, vod = time_series_mask_dates(output_dirs, px_desc)
-    axis_start_points = start_dates[px_desc]
-    axis_end_points = end_dates[px_desc]
-    bax_xlims = tuple([(s, e) for s, e in zip(axis_start_points, axis_end_points)])
-    imerg_limit = np.nanmax(np.abs(imerg)) * 1.1
-    vod_limit = np.nanmax(np.abs(vod)) * 1.1
-    bax = brokenaxes(subplot_spec=ax_to_plot, xlims=bax_xlims)
-    bax.big_ax.axhline(0.5, color='gray', linestyle='--', zorder=0)
-    bax.plot(dates, imerg, 'k-o', ms=2, zorder=1)
-    bax.plot(dates, imerg, 'k',alpha=0.5,zorder=1)
-    [x.remove() for x in bax.diag_handles]
-    bax.draw_diags()
-    bax.big_ax.set_ylabel('precipitation\nanomaly (mm day$^{-1}$)', fontsize=12, labelpad=30)
-    for i, ax in enumerate(bax.axs):
-        ax.tick_params(labelsize=14)
-        ax.set_ylim([-imerg_limit, imerg_limit])
-        ax.set_xticks([axis_start_points[i], axis_start_points[i]+relativedelta(months=2)])
-        ax.tick_params(axis='x', rotation=7)
-    ax2 = brokenaxes(subplot_spec=ax_to_plot, xlims=bax_xlims)
-    ax2.plot(dates, vod, '-s', ms=2, color=vod_colour)
-    for ax in ax2.axs:
-        ax.patch.set_facecolor('none')
-        ax.spines['bottom'].set_visible(False)
-        ax.spines['left'].set_visible(False)
-        ax.spines['top'].set_visible(True)
-        ax.spines['top'].set_color('#cccccc')
-        ax.tick_params(labelsize=14)
-        ax.tick_params(left=False, labelleft=False)
-        ax.tick_params(bottom=False, labelbottom=False)
-        ax.set_ylim([-vod_limit, vod_limit])
-    ax2.axs[-1].spines['right'].set_visible(True)
-    ax2.axs[-1].tick_params(right=True, labelright=True)
-    ax2.axs[-1].tick_params(axis='y', colors=vod_colour)
-    ax2.big_ax.yaxis.set_label_position("right")
-    ax2.big_ax.set_ylabel('VOD anomaly\n(unitless)', fontsize=12, labelpad=50, color=vod_colour)
-    px_lag_data = pixel_lag_data(output_dirs, px_desc)
-    px_lag = px_lag_data['lag']
-    px_lag_error = px_lag_data['lag_error']
-    px_period = px_lag_data['period']
-    px_lag_label = f'+{px_lag:.1f}' if px_lag>0 else f'{px_lag:.1f}'
-    lag_summary = f'{px_seasons[px_desc]} phase diff.: {px_lag_label} ± {px_lag_error:.1f} days @ {px_period:.1f} day period'
-    ax2.big_ax.text(0.99, 0.05, lag_summary, transform=ax.transAxes, fontsize=12, 
-                    color='#8C8888', ha='right', bbox=dict(facecolor='white', 
-                    edgecolor='none', pad=1.0))
-    deg = u'\u00B0'
-    bax.big_ax.set_title(f'({label_letter}) {px_lats[px_desc]}{deg}N, {px_lons[px_desc]}{deg}E', fontsize=14, color='k')
-
-
 def plot_time_series_multiyear_filtered(output_dirs, px_desc, ax_to_plot, label_letter, window_size=5):
     dates, imerg, vod = time_series_mask_dates(output_dirs, px_desc)
     filtered_imerg = filter_imerg_seasons(px_desc, imerg)

@@ -373,13 +373,6 @@ def run_all_processing(output_dirs, tiles, seasons, bands):
 
     return
 
-def check_filename(filename, varnames):
-    """Check whether you remembered to change the filename for the CSA output... not foolproof..."""
-    components = [w for v in varnames for w in v.split('_')]
-    if any(v not in filename for v in components):
-        print(("WARN: Input filename doesn't match the usual pattern"
-               " suggested by the variable names."))
-
 
 def parse_args():
     """Read the command line arguments."""
