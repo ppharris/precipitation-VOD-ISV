@@ -8,11 +8,11 @@ from matplotlib.patches import Rectangle
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
-from lag_subplots_calc import tile_global_validity, tile_global_from_saved_spectra
-from plot_utils import binned_cmap, StripyPatch
+from tiles_to_global_calc import tile_global_validity, tile_global_from_saved_spectra
 from read_csagan_saved_output import read_region_data
 from read_data_iris import crop_cube
-import utils_load as ul
+import utils.load as ul
+from utils.plot import binned_cmap, StripyPatch
 
 
 lats_south = {'global': -55, 'southern': -60, 'tropics': -30, 'northern': 30, 'polar': 60}

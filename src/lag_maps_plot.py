@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 import os
 
-import utils_load as ul
+import utils.load as ul
 
 
 def to_percent(numer, denom):
@@ -118,7 +118,7 @@ def global_plots_mean_estimate(output_dirs, plot_type="png"):
     cbar.ax.set_xlabel('phase difference (days)', fontsize=18)
 
     filename = os.path.join(figures_dir,
-                            f"lag_subplots_mean_phase_diff_estimate.{plot_type}")
+                            f"lag_maps_mean_phase_diff_estimate.{plot_type}")
     plt.savefig(filename, dpi=600, bbox_inches='tight')
 
 
@@ -247,7 +247,7 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot
                                  'positive\nphase difference'])
         cbar.ax.tick_params(labelsize=16)
 
-    fname_out = os.path.join(figures_dir, f"lag_subplots_with95ci.{plot_type}")
+    fname_out = os.path.join(figures_dir, f"lag_maps_with95ci.{plot_type}")
     plt.savefig(fname_out, dpi=600, bbox_inches='tight')
 
 

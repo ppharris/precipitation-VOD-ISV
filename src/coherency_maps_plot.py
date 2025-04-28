@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import numpy as np
 import os
 
-import utils_load as ul
+import utils.load as ul
 
 
 def to_percent(numer, denom):
@@ -148,7 +148,7 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot
                                  'positive\nphase difference'])
         cbar.ax.tick_params(labelsize=11)
 
-    fname_out = os.path.join(figures_dir, f"coherency_subplots_with95ci.{plot_type}")
+    fname_out = os.path.join(figures_dir, f"coherency_maps_with95ci.{plot_type}")
     plt.savefig(fname_out, dpi=600, bbox_inches='tight')
 
 

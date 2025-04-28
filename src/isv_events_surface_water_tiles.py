@@ -12,8 +12,8 @@ from read_data_iris import (check_dirs, read_data_all_years,
                             daily_anomalies_normalised, daily_anomalies,
                             monthly_anomalies_normalised)
 from bandpass_filters import lanczos_lowpass_filter_missing_data
-import utils_load as ul
-from utils_datasets import VOD_SW, IMERG_RG, CCI_SM, NDVI_AQUA, NDVI_TERRA
+import utils.load as ul
+from utils.datasets import VOD_SW, IMERG_RG, CCI_SM, NDVI_AQUA, NDVI_TERRA
 
 
 def remove_aux_coords(cube):

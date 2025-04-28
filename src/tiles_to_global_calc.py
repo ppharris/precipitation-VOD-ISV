@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from read_csagan_saved_output import read_region_data
-import utils_load as ul
+import utils.load as ul
 
 
 def tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper):

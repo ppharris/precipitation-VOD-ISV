@@ -3,7 +3,7 @@ import numpy as np
 import os
 import string
 
-import utils_load as ul
+import utils.load as ul
 
 
 def land_cover_full_name(land_cover):

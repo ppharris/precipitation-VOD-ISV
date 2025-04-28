@@ -9,7 +9,7 @@ from scipy.stats import t as tdist
 import warnings
 
 from read_data_iris import read_data_all_years
-from utils_datasets import VOD, CCI_SM, SWAMPS
+from utils.datasets import VOD, CCI_SM, SWAMPS
 
 
 timesteps = 6940

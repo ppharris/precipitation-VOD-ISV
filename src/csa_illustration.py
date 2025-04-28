@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from datetime_utils import datetime_to_decimal_year
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
@@ -8,6 +7,7 @@ import os
 import string
 
 from csagan_multiprocess import reference_response_spectra
+from utils.datetime import datetime_to_decimal_year
 
 
 DAYS = np.arange(5000.)

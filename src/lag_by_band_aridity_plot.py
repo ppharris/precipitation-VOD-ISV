@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from aridity import load_aridity, standard_mapping, standard_colors
-import utils_load as ul
+from ancils.aridity import load_aridity, standard_mapping, standard_colors
+import utils.load as ul
 
 
 def process_data(lag_data_dir, bands, seasons, classes):

@@ -2,9 +2,9 @@ import iris
 import numpy as np
 import numpy.ma as ma
 
-from datetime_utils import days_since_1970_to_decimal_year, decimal_year_to_datetime
 from read_data_iris import read_data_all_years
-from utils_datasets import VOD
+from utils.datasets import VOD
+from utils.datetime import days_since_1970_to_decimal_year, decimal_year_to_datetime
 
 
 def filter_jumps_monthly(vod_tile, allowed_jump_stdevs=2):

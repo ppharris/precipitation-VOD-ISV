@@ -5,7 +5,7 @@ import numpy.ma as ma
 import xarray as xr
 
 from read_data_iris import read_data_all_years
-from utils_datasets import IMERG_RG, VOD_SW
+from utils.datasets import IMERG_RG, VOD_SW
 
 
 def get_imerg_vod_pixel(px_lat, px_lon):

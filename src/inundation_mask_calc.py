@@ -3,8 +3,8 @@ import numpy.ma as ma
 import iris.coord_categorisation
 
 from read_data_iris import read_data_all_years, get_date_constraint
-import utils_load as ul
-from utils_datasets import CCI_SM, VOD, VOD_SW
+import utils.load as ul
+from utils.datasets import CCI_SM, VOD, VOD_SW
 
 
 def save_number_seasonal_vod_obs(output_dirs, vod_no_sw_mask, vod_sw_mask, season):

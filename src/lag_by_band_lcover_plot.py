@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from copernicus import load_land_cover, standard_mapping, standard_colors
-import utils_load as ul
+from ancils.copernicus import load_land_cover, standard_mapping, standard_colors
+import utils.load as ul
 
 
 def process_data(lag_data_dir, bands, seasons, classes):

@@ -7,8 +7,8 @@ import os
 
 from read_data_iris import crop_cube, read_data_all_years
 from bandpass_filters import bandpass_filter_missing_data
-from plot_utils import binned_cmap
-from utils_datasets import IMERG_RG
+from utils.datasets import IMERG_RG
+from utils.plot import binned_cmap
 
 
 def get_data():

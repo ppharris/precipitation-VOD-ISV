@@ -21,7 +21,7 @@ import itertools
 from multiprocessing import Pool
 
 from read_csagan_saved_output import read_region_data
-import utils_load as ul
+import utils.load as ul
 
 
 _global_shared_data = {}

@@ -8,7 +8,7 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 import numpy as np
 import os
 
-import utils_load as ul
+import utils.load as ul
 
 
 def removed_for_inundation(number_obs_dir, season):

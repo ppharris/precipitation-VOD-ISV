@@ -14,8 +14,8 @@ from subprocess import run
 import time
 
 from read_data_iris import read_data_all_years, read_land_sea_mask
-from datetime_utils import decimal_year_to_datetime, days_since_1970_to_decimal_year
-from utils_datasets import IMERG_RG, VOD_SW
+from utils.datasets import IMERG_RG, VOD_SW
+from utils.datetime import decimal_year_to_datetime, days_since_1970_to_decimal_year
 
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).
@@ -166,7 +166,7 @@ def make_data_array(data_variable,
     See read_data_iris documentation for list of supported variables.
     Parameters
     ----------
-    data_variable: utils_dataset.Dataset object
+    data_variable: utils.dataset.Dataset object
         Helper object for the dataset to be loaded.
     lon_west (kwarg): int or float
         Longitude of western boundary of area to load (in degrees east). Default -180.
@@ -226,7 +226,7 @@ def make_data_arrays(reference_variable, response_variable,
     so that output from this function can be fed straight to the cross-spectral analysis.
     Parameters
     ----------
-    data_variable: utils_dataset.Dataset object
+    data_variable: utils.dataset.Dataset object
         Helper object for the dataset to be loaded.
     lon_west (kwarg): int or float
         Longitude of western boundary of area to load (in degrees east). Default -180.
@@ -332,9 +332,9 @@ def create_input_file(reference_variable, response_variable, dates, reference_da
     for cross-spectral analysis by csagan.
     Parameters
     ----------
-    reference_variable: utils_dataset.Dataset object
+    reference_variable: utils.dataset.Dataset object
         Helper object for the reference dataset to be loaded.
-    response_variable: utils_dataset.Dataset object
+    response_variable: utils.dataset.Dataset object
         Helper object for the response dataset to be loaded.
     dates: list or numpy array
         Time stamps of data as decimal dates
