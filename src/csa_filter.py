@@ -1,10 +1,10 @@
 """
-Take cross-spectral analysis results produced by csagan_multiprocess.py and compute average coherency across
+Take cross-spectral analysis results produced by csa_multiprocess.py and compute average coherency across
 a specified period band, testing for significance based on the large-scale neighbourhood of each pixel.
 Proceed to compute the average period at which significant coherency occurs, the average phase difference
 and the width of the 95% confidence interval for the phase difference.
 
-Works with the same four latitude bands as csagan_multiprocess.py.
+Works with the same four latitude bands as csa_multiprocess.py.
 
 Saves maps of neighbourhood average properties in a dictionary using pickle.
 

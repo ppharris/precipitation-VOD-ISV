@@ -6,7 +6,7 @@ import numpy as np
 import os
 import string
 
-from csagan_multiprocess import reference_response_spectra
+from csa_multiprocess import reference_response_spectra
 from utils.datetime import datetime_to_decimal_year
 
 

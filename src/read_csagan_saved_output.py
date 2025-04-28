@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Functions for reading cross-spectral analysis data saved onto 
-# latitude-band tiles by csagan_multiprocess.py
+# latitude-band tiles by csa_multiprocess.py
 # and cropping to specified lat/lon box.
 
 

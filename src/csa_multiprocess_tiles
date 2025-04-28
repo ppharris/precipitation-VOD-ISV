@@ -10,19 +10,19 @@ for lon_west in {-180..150..30}
 do
     for season in JJA MAM SON DJF
     do
-	python csagan_multiprocess.py -e $csagan_exe -n 4 \
+	python csa_multiprocess.py -e $csagan_exe -n 4 \
                -r tropics \
                -c $lon_west $((lon_west+30)) -35 35 \
                -s $season \
                -w $dir_work -o $dir_out 2>&1 | tee $dir_work/tropics_${season}_noswmask.txt
 
-	python csagan_multiprocess.py -e $csagan_exe -n 4 \
+	python csa_multiprocess.py -e $csagan_exe -n 4 \
                -r northern \
                -c $lon_west $((lon_west+30)) 25 65 \
                -s $season \
                -w $dir_work -o $dir_out 2>&1 | tee $dir_work/northern_${season}_noswmask.txt
 
-	python csagan_multiprocess.py -e $csagan_exe -n 4 \
+	python csa_multiprocess.py -e $csagan_exe -n 4 \
                -r southern \
                -c $lon_west $((lon_west+30)) -60 -25 \
                -s $season \

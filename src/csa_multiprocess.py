@@ -751,7 +751,7 @@ def write_to_dataset(filename, results, results_lats, results_lons):
 def main():
     args = parse_args()
 
-    # run e.g. ">> python csagan_multiprocess.py tropics NDJFM -180 180 -35 35" for pan-tropical analysis in NDJFM
+    # run e.g. ">> python csa_multiprocess.py tropics NDJFM -180 180 -35 35" for pan-tropical analysis in NDJFM
     csagan_exe = args.executable
     work_dir = args.work_dir
     output_dir = args.output_dir
