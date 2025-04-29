@@ -62,25 +62,25 @@ def _path_getter(path_pattern):
 IMERG = Dataset("IMERG", "precipitationCal", "mm d-1",
                 path_pattern="/localscratch/wllf029/bethar/IMERG/IMERG.V06.{year}.daily.nc4")
 
-IMERG_RG = Dataset("IMERG", "precipitationCal", "mm d-1",
+IMERG_RG = Dataset("IMERG-RG", "precipitationCal", "mm d-1",
                    path_pattern="/prj/nceo/bethar/IMERG/regrid_p25_global/IMERG.V06.{year}.daily_p25.nc")
 
 VOD = Dataset("VOD", "vod", "1",
               path_pattern="/prj/nceo/bethar/VODCA_global/filtered/X-band/VOD-X-band_filtered_{year}.nc")
 
-VOD_SW = Dataset("VOD", "vod", "1",
+VOD_SW = Dataset("VOD-SW", "vod", "1",
                  path_pattern="/prj/nceo/bethar/VODCA_global/filtered/filtered_surface_water/X-band/VOD-X-band_filtered_surface_water_{year}.nc")
 
-CCI_SM = Dataset("SM", "sm", "m3 m-3",
+CCI_SM = Dataset("CCI-SM", "sm", "m3 m-3",
                  path_pattern="/prj/swift/ESA_CCI_SM/year_files_v6.1_combined_GLOBAL/{year}_volumetric_soil_moisture_daily.nc")
 
 SWAMPS = Dataset("SWAMPS", "frac_surface_water", "1",
                  path_pattern="/prj/nceo/bethar/SWAMPS_daily/SWAMPS-{year}.nc")
 
-NDVI_AQUA = Dataset("NDVI", "NDVI", "1",
+NDVI_AQUA = Dataset("NDVI-AQUA", "NDVI", "1",
                     path_pattern="/prj/nceo/bethar/MODIS-NDVI-16day/modis_aqua_16-day_ndvi_0p25_{year}.nc")
 
-NDVI_TERRA = Dataset("NDVI", "NDVI", "1",
+NDVI_TERRA = Dataset("NDVI-TERRA", "NDVI", "1",
                     path_pattern="/prj/nceo/bethar/MODIS-NDVI-16day/modis_terra_16-day_ndvi_0p25_{year}.nc")
 
 FLUXCOM_JRA = Dataset("FLUXCOM-JRA-025", "GPP", "g m-2 d-1",
@@ -88,6 +88,28 @@ FLUXCOM_JRA = Dataset("FLUXCOM-JRA-025", "GPP", "g m-2 d-1",
 
 FLUXCOM_ERA = Dataset("FLUXCOM-ERA-025", "GPP", "g m-2 d-1",
                       path_pattern="/prj/nceo/ppha/cpeo/data/fluxcom/GPP.RS_METEO.FP-ALL.MLM-ALL.METEO-ERA5.720_360.daily.{year}.nc")
+
+
+def _initialise_datasets():
+    """Generate a function that returns a dataset based on name."""
+    all_datasets = {
+        d.name: d for d in (
+            IMERG, IMERG_RG,
+            VOD, VOD_SW,
+            CCI_SM,
+            SWAMPS,
+            NDVI_AQUA, NDVI_TERRA,
+            FLUXCOM_JRA, FLUXCOM_ERA,
+        )
+    }
+
+    def get_dataset(name):
+        return all_datasets.get(name, None)
+
+    return get_dataset
+
+get_dataset = _initialise_datasets()
+
 
 if __name__ == "__main__":
     pass

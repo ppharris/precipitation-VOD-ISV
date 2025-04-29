@@ -83,21 +83,26 @@ def load_num_obs(number_obs_dir, seasons):
     return num_obs
 
 
-def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, seasons, nonzero_only=False):
+def all_season_lags(output_dirs, datasets, tile, band_days_lower, band_days_upper, seasons, nonzero_only=False):
 
     spectra_filt_dir = output_dirs["spectra_filtered"]
+
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
 
     mask_lag = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
+            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_{reference_var}_{response_var}_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             with open(tile_filename,'rb') as f:
                 neighbourhood_average_spectra = pickle.load(f)
             # Subset array for some reason?
             for key in neighbourhood_average_spectra.keys():
                 neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
-            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir, season, band_days_lower, band_days_upper)
+            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir,
+                                                                           reference_var, response_var,
+                                                                           season, band_days_lower, band_days_upper)
         if nonzero_only:
             mask_lag_mean = neighbourhood_average_spectra['lag']
             mask_lag_error = neighbourhood_average_spectra['lag_error']
@@ -113,14 +118,17 @@ def all_season_lags(output_dirs, tile, band_days_lower, band_days_upper, seasons
     return mask_lag
 
 
-def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper, seasons):
+def median_95ci_width(output_dirs, datasets, tile, band_days_lower, band_days_upper, seasons):
 
     spectra_save_dir = output_dirs["spectra_filtered"]
+
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
 
     all_lag_errors = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
+            tile_filename = f"{spectra_save_dir}/spectra_nooverlap_{tile}_{reference_var}_{response_var}_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             with open(tile_filename,'rb') as f:
                 neighbourhood_average_spectra = pickle.load(f)
             for key in neighbourhood_average_spectra.keys():
@@ -129,25 +137,30 @@ def median_95ci_width(output_dirs, tile, band_days_lower, band_days_upper, seaso
                 else:
                     neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
-            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_save_dir, season, band_days_lower, band_days_upper)
+            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_save_dir,
+                                                                           reference_var, response_var,
+                                                                           season, band_days_lower, band_days_upper)
         all_lag_errors[season] = neighbourhood_average_spectra['lag_error']
     lag_errors_stack = np.stack([v for v in all_lag_errors.values()])
     return np.nanpercentile(lag_errors_stack, 50)
 
 
-def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper, seasons):
+def all_season_validity(output_dirs, datasets, tile, band_days_lower, band_days_upper, seasons):
 
     spectra_save_dir = output_dirs["spectra"]
     spectra_filt_dir = output_dirs["spectra_filtered"]
 
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
+
     validity = {}
     for season in seasons:
         if tile != 'global':
-            tile_filename = f"{spectra_filt_dir}/spectra_nooverlap_tropics_IMERG_VOD_X_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
+            tile_filename = f"{spectra_filt_dir}/spectra_nooverlap_tropics_{reference_var}_{response_var}_{season}_sw_filter_best85_{int(band_days_lower)}-{int(band_days_upper)}.pkl"
             with open(tile_filename,'rb') as f:
                 neighbourhood_average_spectra = pickle.load(f)
 
-            original_output_filename = f"{spectra_save_dir}/tropics_IMERG_VOD_spectra_X_{season}_mask_sw_best85.pkl"
+            original_output_filename = f"{spectra_save_dir}/tropics_{reference_var}_{response_var}_spectra_{season}_mask_sw_best85.pkl"
             lats, lons, spectra = read_region_data(original_output_filename, tile, -180, 180, lats_south[tile], lats_north[tile])
             no_csa = (spectra == {})
             for key in neighbourhood_average_spectra.keys():
@@ -156,8 +169,12 @@ def all_season_validity(output_dirs, tile, band_days_lower, band_days_upper, sea
                 else:
                     neighbourhood_average_spectra[key] = neighbourhood_average_spectra[key][20:-20]
         else:
-            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir, season, band_days_lower, band_days_upper)
-            no_csa = tile_global_validity(spectra_save_dir, season)
+            neighbourhood_average_spectra = tile_global_from_saved_spectra(spectra_filt_dir,
+                                                                           reference_var, response_var,
+                                                                           season, band_days_lower, band_days_upper)
+            no_csa = tile_global_validity(spectra_save_dir,
+                                          reference_var, response_var,
+                                          season)
         coherencies = neighbourhood_average_spectra['coherency']
         validity[season] = (coherencies >= 0.7795).astype(int)
         validity[season][no_csa] = 2
@@ -471,6 +488,8 @@ def main():
 
     output_dirs = metadata.get("output_dirs", None)
 
+    datasets = metadata["datasets"]
+
     bands = [tuple(b) for b in metalags.get("bands", None)]
     seasons = metalags.get("seasons", None)
     lag_bin_bounds = {b: np.arange(*a) for b, a in zip(bands, metalags.get("lag_bin_bounds", None))}
@@ -484,17 +503,17 @@ def main():
     # Run the analysis.
     ###########################################################################
     lag_data = {
-        band: all_season_lags(output_dirs, 'global', *band, seasons=seasons) for band in bands
+        band: all_season_lags(output_dirs, datasets, 'global', *band, seasons=seasons) for band in bands
     }
 
     valid_data = {
-        band: all_season_validity(output_dirs, 'global', *band, seasons=seasons) for band in bands
+        band: all_season_validity(output_dirs, datasets, 'global', *band, seasons=seasons) for band in bands
     }
 
     num_obs = load_num_obs(output_dirs["number_obs"], seasons)
 
     median_data = {
-        band: median_95ci_width(output_dirs, 'global', *band, seasons=seasons) for band in bands
+        band: median_95ci_width(output_dirs, datasets, 'global', *band, seasons=seasons) for band in bands
     }
 
     fig3_lag_bin_bounds = np.arange(-30, 31, 1)

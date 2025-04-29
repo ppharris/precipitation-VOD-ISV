@@ -335,15 +335,18 @@ def run_neighbourhood_averaging(lats, lons):
     return neighbourhood_averages
 
 
-def run_all_processing(output_dirs, tiles, seasons, bands):
+def run_all_processing(output_dirs, datasets, tiles, seasons, bands):
     spectra_dir = output_dirs["spectra"]
     output_dir = output_dirs["spectra_filtered"]
+
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
 
     for tile, tile_bounds in tiles.items():
         for season in seasons:
             spectra_file = os.path.join(
                 spectra_dir,
-                f"{tile}_IMERG_VOD_spectra_X_{season}_mask_sw_best85.pkl"
+                f"{tile}_{reference_var}_{response_var}_spectra_{season}_mask_sw_best85.pkl"
             )
             print(f"Reading {spectra_file}")
 
@@ -364,7 +367,7 @@ def run_all_processing(output_dirs, tiles, seasons, bands):
 
                 output_file = os.path.join(
                     output_dir,
-                    f"spectra_nooverlap_{tile}_IMERG_VOD_X_{season}_sw_filter_best85_{bl}-{bu}.pkl"
+                    f"spectra_nooverlap_{tile}_{reference_var}_{response_var}_{season}_sw_filter_best85_{bl}-{bu}.pkl"
                 )
                 print(f"Writing {output_file}")
 
@@ -417,6 +420,9 @@ def main():
     metadata = ul.load_yaml(args)
 
     output_dirs = metadata.get("output_dirs", None)
+
+    datasets = metadata.get("datasets", None)
+
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
     tiles = metadata["spectra"].get("tiles", None)
@@ -425,7 +431,7 @@ def main():
                   input_names=("spectra",),
                   output_names=("spectra_filtered",))
 
-    run_all_processing(output_dirs, tiles, seasons, bands)
+    run_all_processing(output_dirs, datasets, tiles, seasons, bands)
 
     return
 

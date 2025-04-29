@@ -1,3 +1,4 @@
+
 ---
 
 output_dirs:
@@ -10,6 +11,10 @@ output_dirs:
   data_isv: /path/to/output/dir/data_isv
   data_isv_comp: /path/to/output/dir/data_isv_comp
   figures: /path/to/output/dir/figures
+
+datasets:
+  reference_var: IMERG-RG
+  response_var: VOD-SW
 
 spectra:
   tiles:

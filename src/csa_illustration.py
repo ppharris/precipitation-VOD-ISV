@@ -7,6 +7,7 @@ import os
 import string
 
 from csa_multiprocess import reference_response_spectra
+from utils.datasets import get_dataset
 from utils.datetime import datetime_to_decimal_year
 
 
@@ -68,7 +69,12 @@ def get_spectra(exe_filename, wrk_dir, precip, vod):
     base_date = datetime(2000, 1, 1)
     dates = [base_date + timedelta(days=n) for n in range(vod.size)]
     decimal_dates = np.array([datetime_to_decimal_year(d) for d in dates])
-    spectra = reference_response_spectra(exe_filename, wrk_dir, 0, 'IMERG', 'VOD',
+
+    reference_var = get_dataset("IMERG-RG")
+    response_var = get_dataset("VOD-SW")
+
+    spectra = reference_response_spectra(exe_filename, wrk_dir, 0,
+                                         reference_var, response_var,
                                          decimal_dates, precip, vod)
     return spectra
 

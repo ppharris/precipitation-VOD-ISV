@@ -11,10 +11,11 @@ from pathlib import Path
 import pickle
 import subprocess
 from subprocess import run
+import sys
 import time
 
 from read_data_iris import read_data_all_years, read_land_sea_mask
-from utils.datasets import IMERG_RG, VOD_SW
+from utils.datasets import get_dataset
 from utils.datetime import decimal_year_to_datetime, days_since_1970_to_decimal_year
 
 
@@ -41,6 +42,12 @@ def parse_args():
 
     parser.add_argument("--executable", "-e", type=str, required=True,
                         help="Path to compiled executable of csagan1.1.f.")
+
+    parser.add_argument("--reference-var", type=str, required=True,
+                        help="Name of reference variable to be processed.")
+
+    parser.add_argument("--response-var", type=str, required=True,
+                        help="Name of response variable to be processed.")
 
     parser.add_argument("--nproc", "-n", type=int, default=None,
                         help=("Number of processes to use in the multiprocessing pool. "
@@ -572,9 +579,9 @@ def reference_response_spectra(exe_filename, work_directory, process_id,
         Path to directory for work reference spectra.
     process_id: int
         Process ID for pixel computation
-    reference_variable: str
+    reference_variable: utils.dataset.Dataset object
         Name of reference variable
-    response_variable: str
+    response_variable: utils.dataset.Dataset object
         Name of response variable
     dates: numpy array (1D, float)
         Decimal dates - same dates must be applicable to both reference and response data
@@ -760,6 +767,20 @@ def main():
     season = args.season
     lon_west, lon_east, lat_south, lat_north = args.coords
 
+    reference_variable = get_dataset(args.reference_var)
+    response_variable = get_dataset(args.response_var)
+
+    # Check that the input variables have been interpreted correctly.
+    if reference_variable is None:
+        sys.exit(f"ERROR: Unrecognised reference variable name: {args.reference_var}")
+    else:
+        print(f"INFO: Reference variable {reference_variable.name}")
+
+    if response_variable is None:
+        sys.exit(f"ERROR: Unrecognised response variable name: {args.response_var}")
+    else:
+        print(f"INFO: Response variable {response_variable.name}")
+
     # Ensure the various output directories exist before doing any heavy
     # calculations.
     for dirname in (work_dir, output_dir):
@@ -767,9 +788,6 @@ def main():
         os.makedirs(dirname, exist_ok=True)
 
     print(f'region: {region_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg')
-
-    reference_variable = IMERG_RG
-    response_variable = VOD_SW
 
     months = season_from_abbr(season)
     # Create arrays of time and data for both reference and response variables.

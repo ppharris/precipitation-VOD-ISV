@@ -114,7 +114,7 @@ def read_data_all_years(dataset, regrid_cube=None, min_year=2002, max_year=2016,
                                                    lat_south=lat_south, lat_north=lat_north) for year in years])
     equalise_attributes(all_years)
     all_data = all_years.concatenate_cube()
-    if dataset.name in ['IMERG', 'NDVI']:
+    if dataset.name in ["IMERG", "IMERG-RG", "NDVI-TERRA", "NDVI-AQUA"]:
         all_data.transpose([0, 2, 1])
     return all_data
 
