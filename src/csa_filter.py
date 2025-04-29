@@ -11,7 +11,6 @@ Saves maps of neighbourhood average properties in a dictionary using pickle.
 Bethan Harris, UKCEH, 18/11/2020
 """
 
-import argparse
 import numpy as np
 import os
 import time
@@ -377,38 +376,6 @@ def run_all_processing(output_dirs, datasets, tiles, seasons, bands):
     return
 
 
-def parse_args():
-    """Read the command line arguments."""
-
-    parser = argparse.ArgumentParser(
-        description="Program for running post-processing spectral analysis."
-    )
-
-    parser.add_argument("--input-file", "-i", type=str, required=True,
-                        help="Name of input pickle file.")
-
-    parser.add_argument("--tile", "-t", type=str, required=True,
-                        help="Name of tile to process.")
-
-    parser.add_argument("--band-lower", "-l", type=float, required=True,
-                        help="Lower bound of spectral periods to include in analysis (days)")
-
-    parser.add_argument("--band-upper", "-u", type=float, required=True,
-                        help="Upper bound of spectral periods to include in analysis (days)")
-
-    parser.add_argument("--output-file", "-o", type=str, required=True,
-                        help="Name of output pickle file.")
-
-    args = parser.parse_args()
-
-    if args.band_lower > args.band_upper:
-        sys.exit(f"ERROR: Spectral bounds error: {args.band_lower} > {args.band_upper}")
-    if not os.path.exists(args.input_file):
-        sys.exit(f"ERROR: input file does not exist: {args.input_file}")
-
-    return args
-
-
 def main():
 
     ###########################################################################
@@ -427,10 +394,18 @@ def main():
     seasons = metadata["lags"].get("seasons", None)
     tiles = metadata["spectra"].get("tiles", None)
 
+    # Do some sanity checking of processed input args.
+    for (bl, bu) in bands:
+        if bl <= 0 or bu <= 0:
+            sys.exit(f"ERROR: Band bounds are not positive: [{bl} to {bu}]")
+        elif bl > bu:
+            sys.exit(f"ERROR: Band bounds must be increasing: [{bl} to {bu}]")
+
     ul.check_dirs(output_dirs,
                   input_names=("spectra",),
                   output_names=("spectra_filtered",))
 
+    # Run all requested cross-spectral analyses.
     run_all_processing(output_dirs, datasets, tiles, seasons, bands)
 
     return
