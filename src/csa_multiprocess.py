@@ -1,4 +1,3 @@
-import argparse
 import calendar
 from cftime import num2date
 from datetime import datetime
@@ -17,7 +16,7 @@ import time
 from read_data_iris import read_data_all_years, read_land_sea_mask
 from utils.datasets import get_dataset
 from utils.datetime import decimal_year_to_datetime, days_since_1970_to_decimal_year
-
+import utils.load as ul
 
 # Perform cross-spectral analysis on 3D netCDF data using csagan and save results (with pickle).
 # csagan is run separately for each pixel to allow for each pixel having missing data
@@ -31,47 +30,6 @@ from utils.datetime import decimal_year_to_datetime, days_since_1970_to_decimal_
 
 
 init_dict = {} # Dictionary to contain data that needs sharing between multiprocessing workers
-
-
-def parse_args():
-    """Read the command line arguments."""
-
-    parser = argparse.ArgumentParser(
-        description="Program for running spectral analysis."
-    )
-
-    parser.add_argument("--executable", "-e", type=str, required=True,
-                        help="Path to compiled executable of csagan1.1.f.")
-
-    parser.add_argument("--reference-var", type=str, required=True,
-                        help="Name of reference variable to be processed.")
-
-    parser.add_argument("--response-var", type=str, required=True,
-                        help="Name of response variable to be processed.")
-
-    parser.add_argument("--nproc", "-n", type=int, default=None,
-                        help=("Number of processes to use in the multiprocessing pool. "
-                              "Default: os.cpu_count()."))
-
-    parser.add_argument("--region", "-r", type=str, required=True,
-                        help="Name of region to be processed.")
-
-    parser.add_argument("--season", "-s", type=str, required=True,
-                        help="Season to be processed, e.g., MJJAS.")
-
-    parser.add_argument("--coords", "-c", type=float, nargs=4, required=True,
-                        help=("Coords region to be processed "
-                              "(lon W, lon E, lat S lat N)."))
-
-    parser.add_argument("--work-dir", "-w", type=str, required=True,
-                        help="Directory to write temporary work files.")
-
-    parser.add_argument("--output-dir", "-o", type=str, required=True,
-                        help="Directory to write output files.")
-
-    args = parser.parse_args()
-
-    return args
 
 
 def pad_match_time(dates1, dates2, data1, data2):
@@ -754,53 +712,27 @@ def write_to_dataset(filename, results, results_lats, results_lons):
     with open(filename, 'wb') as fout:
         pickle.dump(region_array, fout)
 
+    return
 
-def main():
-    args = parse_args()
 
-    # run e.g. ">> python csa_multiprocess.py tropics NDJFM -180 180 -35 35" for pan-tropical analysis in NDJFM
-    csagan_exe = args.executable
-    work_dir = args.work_dir
-    output_dir = args.output_dir
-    nproc = args.nproc
-    region_name = args.region
-    season = args.season
-    lon_west, lon_east, lat_south, lat_north = args.coords
-
-    reference_variable = get_dataset(args.reference_var)
-    response_variable = get_dataset(args.response_var)
-
-    # Check that the input variables have been interpreted correctly.
-    if reference_variable is None:
-        sys.exit(f"ERROR: Unrecognised reference variable name: {args.reference_var}")
-    else:
-        print(f"INFO: Reference variable {reference_variable.name}")
-
-    if response_variable is None:
-        sys.exit(f"ERROR: Unrecognised response variable name: {args.response_var}")
-    else:
-        print(f"INFO: Response variable {response_variable.name}")
-
-    # Ensure the various output directories exist before doing any heavy
-    # calculations.
-    for dirname in (work_dir, output_dir):
-        print(f"Creating directory {dirname}")
-        os.makedirs(dirname, exist_ok=True)
-
-    print(f'region: {region_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg')
+def csa_multiprocess_tile(csagan_exe, nproc, work_dir, output_dir,
+                          reference_variable, response_variable,
+                          min_year, max_year, season, region_name,
+                          lon_west, lon_east, lat_south, lat_north):
 
     months = season_from_abbr(season)
+
     # Create arrays of time and data for both reference and response variables.
     # Don't analyse pixels with fewer than percent_readings_required % of valid obs over all timesteps
     # Use flip_response_sign if a positive change in reference_variable leads to a negative change in response_variable (otherwise output lags won't make sense)
     decimal_dates, reference_array, response_array, lats, lons = make_data_arrays(reference_variable, response_variable,
                                                                                   lon_west=lon_west, lon_east=lon_east,
                                                                                   lat_south=lat_south, lat_north=lat_north,
-                                                                                  min_year=2000, max_year=2018,
+                                                                                  min_year=min_year, max_year=max_year,
                                                                                   return_coords=True, flip_response_sign=False,
                                                                                   month_list=months,
-                                                                                  percent_readings_required=30.) 
-   
+                                                                                  percent_readings_required=30.)
+
     # Set up ID labels for each pixel and shared arrays to be used by multiprocessing pool
     total_pixels = reference_array[0, :, :].size
 
@@ -839,6 +771,103 @@ def main():
 
     print(f"Writing output to {path_tmp}")
     write_to_dataset(path_tmp, results, lats, lons)
+
+    return
+
+
+def main():
+
+    ###########################################################################
+    # Parse command line args and load input file.
+    ###########################################################################
+    parser = ul.get_arg_parser()
+    args = parser.parse_args()
+
+    metadata = ul.load_yaml(args)
+
+    output_dirs = metadata.get("output_dirs", None)
+
+    datasets = metadata.get("datasets", None)
+
+    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
+    seasons = metadata["lags"].get("seasons", None)
+    tiles = metadata["spectra"].get("tiles", None)
+
+    ###########################################################################
+    # Set up normal variables from yaml input dicts.
+    ###########################################################################
+    csagan_exe = metadata["multiprocess"].get("executable", None)
+    nproc = metadata["multiprocess"].get("nproc", None)
+
+    work_dir = output_dirs["spectra_tmp"]
+    output_dir = output_dirs["spectra"]
+
+    reference_variable = get_dataset(datasets["reference_var"])
+    response_variable = get_dataset(datasets["response_var"])
+
+    min_year = datasets["year_beg"]
+    max_year = datasets["year_end"]
+
+    ###########################################################################
+    # Check that the input variables have been interpreted correctly.
+    ###########################################################################
+    if reference_variable is None:
+        sys.exit(f"ERROR: Unrecognised reference variable name: {args.reference_var}")
+    else:
+        print(f"INFO: Reference variable {reference_variable.name}")
+
+    if response_variable is None:
+        sys.exit(f"ERROR: Unrecognised response variable name: {args.response_var}")
+    else:
+        print(f"INFO: Response variable {response_variable.name}")
+
+    if min_year > max_year:
+        sys.exit(f"ERROR: Start year after end year: {min_year} > {max_year}")
+    else:
+        print(f"INFO: Year range {min_year} to {max_year}")
+
+    print("INFO: Requested seasons:")
+    for season in seasons:
+        print(f"INFO:     {season}")
+
+    print("INFO: Requested tiles:")
+    for tile_name, tile_coords in tiles.items():
+        lon_west, lon_east, lat_south, lat_north = tile_coords
+        print(f"INFO:     {tile_name}, west: {lon_west} deg, east: {lon_east} deg, south: {lat_south} deg, north: {lat_north} deg")
+
+    # Ensure the various output directories exist before doing any heavy
+    # calculations.
+    for dirname in (work_dir, output_dir):
+        print(f"Creating directory {dirname}")
+        os.makedirs(dirname, exist_ok=True)
+
+    ###########################################################################
+    # Run the cross-spectral analysis for each requested region (tile) and for
+    # each requested season.  Regions are divided up into subtiles for
+    # processing to reduce RAM use.
+    ###########################################################################
+    print("INFO: Starting cross-spectral analysis.")
+
+    # Width of tile subtiles in longitude degrees.
+    subtile_lons = 30.0
+
+    for tile_name, tile_coords in tiles.items():
+        tile_west, tile_east, tile_south, tile_north = tile_coords
+
+        subtile_coords = [
+            (lon, min(lon + subtile_lons, tile_east), tile_south, tile_north)
+            for lon in np.arange(tile_west, tile_east, subtile_lons)
+        ]
+
+        for coords in subtile_coords:
+            for season in seasons:
+                print(f"INFO: Processing subtile {coords} of {tile_name} tile for {season}")
+                csa_multiprocess_tile(csagan_exe, nproc, work_dir, output_dir,
+                                      reference_variable, response_variable,
+                                      min_year, max_year, season, tile_name,
+                                      *coords)
+
+    return
 
 
 if __name__ == '__main__':
