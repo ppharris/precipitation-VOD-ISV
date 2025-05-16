@@ -2,7 +2,8 @@
 class Dataset(object):
     """Class encapsulating metadata for an input dataset."""
 
-    def __init__(self, name, varname, units, path_pattern=None, path_getter=None):
+    def __init__(self, name, varname, units, path_pattern=None, path_getter=None,
+                 data_period=1.0):
         """Initialise metadata for a dataset.
 
         Args:
@@ -22,10 +23,21 @@ class Dataset(object):
                 Function that returns an input file path.  Use this if your
                 input paths can't be generated just by substituting the year
                 into a string.
+            data_period : float, optional
+                Real period of data relative to the file time dimension, e.g,
+                data_period=8.0 for GPP data with non-missing values every 8
+                days in files with a time coordinate step of 1 day.  This value
+                can be used to adjust expected/required non-missing data
+                fractions.
         """
         self.name = name
         self.varname = varname
         self.units = units
+
+        if data_period < 1.0:
+            raise ValueError("data_period must be >= 1.")
+        else:
+            self.data_period = data_period
 
         if path_getter is not None:
             self.get_path = path_getter
@@ -89,6 +101,10 @@ FLUXCOM_JRA = Dataset("FLUXCOM-JRA-025", "GPP", "g m-2 d-1",
 FLUXCOM_ERA = Dataset("FLUXCOM-ERA-025", "GPP", "g m-2 d-1",
                       path_pattern="/prj/nceo/ppha/cpeo/data/fluxcom/GPP.RS_METEO.FP-ALL.MLM-ALL.METEO-ERA5.720_360.daily.{year}.nc")
 
+ZHANG_GPP = Dataset("ZHANG-GPP-025", "GPP", "kg m-2 s-1",
+                    path_pattern="/prj/nceo/bethar/GPP_Zhang2017/0pt25deg/GPP_VPM_8day_0pt25deg_{year}.nc",
+                    data_period=8.0)
+
 
 def _initialise_datasets():
     """Generate a function that returns a dataset based on name."""
@@ -100,6 +116,7 @@ def _initialise_datasets():
             SWAMPS,
             NDVI_AQUA, NDVI_TERRA,
             FLUXCOM_JRA, FLUXCOM_ERA,
+            ZHANG_GPP,
         )
     }
 

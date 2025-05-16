@@ -173,8 +173,18 @@ def make_data_array(data_variable,
     possible_days = (~np.isnan(mask_to_months(dates, np.ones_like(data_array[:, 0, 0]), month_list=month_list))).astype(int).sum()
     number_readings = (~np.isnan(data_array_mask_season)).sum(axis=0)
     pc_readings = 100.*number_readings/possible_days
+
+    # Calculate whether there are enough data in the time series to meet an
+    # requested minimum percentage.  The requested percentage is adjusted
+    # (reduced) to account for variables that are only available on a longer
+    # time step than the time coordinate of the data array.  For pixels that
+    # don't meet the required percentage, the whole time series is set to
+    # missing data.
+    percent_readings_required /= data_variable.data_period
     insufficient_readings = pc_readings < percent_readings_required
+
     data_array_mask_season[:, insufficient_readings] = np.nan
+
     return dates, data_array_mask_season, lats, lons
 
 
