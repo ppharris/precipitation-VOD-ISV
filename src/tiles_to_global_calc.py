@@ -94,7 +94,7 @@ def main():
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
 
-    datasets = metadata.get["datasets"]
+    datasets = metadata["datasets"]
 
     ul.check_dirs(output_dirs,
                   input_names=("spectra", "spectra_filtered"),
