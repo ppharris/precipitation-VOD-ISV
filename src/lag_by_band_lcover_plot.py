@@ -4,6 +4,7 @@ import os
 
 from ancils.copernicus import load_land_cover, standard_mapping, standard_colors
 import utils.load as ul
+from utils.plot import add_date
 
 
 def process_data(lag_data_dir, bands, seasons, classes):
@@ -36,7 +37,10 @@ def process_data(lag_data_dir, bands, seasons, classes):
     return data
 
 
-def make_plots(output_dirs, bands, seasons, classes, plot_type="png"):
+def make_plots(output_dirs, datasets, bands, seasons, classes, plot_type="png"):
+
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
 
     figures_dir = output_dirs["figures"]
 
@@ -44,6 +48,9 @@ def make_plots(output_dirs, bands, seasons, classes, plot_type="png"):
     data = process_data(lag_data_dir, bands, seasons, classes)
 
     F, axs = plt.subplots(nrows=1, ncols=len(seasons), squeeze=False)
+
+    add_date(F)
+    F.suptitle(f"Mean phase lag {response_var} relative to {reference_var}")
 
     for ax, season in zip(axs.flat, seasons):
         sdata = data[season]
@@ -82,6 +89,7 @@ def main():
     metadata = ul.load_yaml(args)
 
     output_dirs = metadata.get("output_dirs", None)
+    datasets = metadata["datasets"]
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
     plot_type = metadata["plots"].get("type", "png")
@@ -99,7 +107,7 @@ def main():
     ###########################################################################
     # Run the analysis.
     ###########################################################################
-    make_plots(output_dirs, bands, seasons, (land_cover, standard_mapping),
+    make_plots(output_dirs, datasets, bands, seasons, (land_cover, standard_mapping),
                plot_type=plot_type)
 
     return

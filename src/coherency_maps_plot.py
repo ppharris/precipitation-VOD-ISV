@@ -10,6 +10,7 @@ import numpy as np
 import os
 
 import utils.load as ul
+from utils.plot import add_date
 
 
 def to_percent(numer, denom):
@@ -20,10 +21,14 @@ def to_percent(numer, denom):
     return result
 
 
-def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot_type="png"):
+def global_plots_with95ci(output_dirs, datasets, bands, seasons,
+                          plot_raw_lags=False, plot_type="png"):
 
     lag_data_dir = output_dirs["lag_data"]
     figures_dir = output_dirs["figures"]
+
+    reference_var = datasets["reference_var"]
+    response_var = datasets["response_var"]
 
     if plot_raw_lags:
         cmap = mpl.colormaps.get_cmap("turbo")
@@ -65,6 +70,10 @@ def global_plots_with95ci(output_dirs, bands, seasons, plot_raw_lags=False, plot
                   dict(projection=projection))
 
     fig = plt.figure(figsize=(16, 15))
+
+    add_date(fig)
+    fig.suptitle(f"Mean coherency {response_var} relative to {reference_var}")
+
     axgr = AxesGrid(fig, 111,
                     axes_class=axes_class,
                     nrows_ncols=(len(bands), len(seasons)),
@@ -162,6 +171,7 @@ def main():
     metadata = ul.load_yaml(args)
 
     output_dirs = metadata.get("output_dirs", None)
+    datasets = metadata["datasets"]
     bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
     seasons = metadata["lags"].get("seasons", None)
     plot_type = metadata["plots"].get("type", "png")
@@ -173,7 +183,7 @@ def main():
     ###########################################################################
     # Run the analysis.
     ###########################################################################
-    global_plots_with95ci(output_dirs, bands, seasons,
+    global_plots_with95ci(output_dirs, datasets, bands, seasons,
                           plot_raw_lags=True, plot_type=plot_type)
 
 

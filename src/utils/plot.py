@@ -4,12 +4,18 @@ Functions to aid plotting of data.
 Bethan Harris, UKCEH, 04/01/2021
 """
 
+from datetime import date as dt
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 from matplotlib.patches import Rectangle
 from matplotlib.legend_handler import HandlerBase
+
+
+def add_date(fig, ha="right", va="top", fontsize=8, **kwargs):
+    """Add date to top-right corner of a figure."""
+    fig.text(1, 1, f"[{dt.today()}]", ha=ha, va=va, fontsize=fontsize, **kwargs)
 
 
 def binned_cmap(levels, colormap_key, fix_colours=[], bad_colour='white', extend='neither'):
