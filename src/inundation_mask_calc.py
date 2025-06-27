@@ -79,7 +79,7 @@ def main():
     metadata = ul.load_yaml(args)
 
     output_dirs = metadata.get("output_dirs", None)
-    seasons = metadata["lags"].get("seasons", None)
+    seasons = metadata["spectra"].get("seasons", None)
 
     ul.check_dirs(output_dirs,
                   output_names=("number_obs",)

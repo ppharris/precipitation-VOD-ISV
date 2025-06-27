@@ -28,6 +28,16 @@ spectra:
     tropics: [-180, 180, -35, 35]
     northern: [-180, 180, 25, 65]
     southern: [-180, 180, -60, -25]
+  seasons:
+    - DJF
+    - MAM
+    - JJA
+    - SON
+
+filter:
+  bands:
+    - [25, 40]
+    - [40, 60]
 
 lags:
   bands:

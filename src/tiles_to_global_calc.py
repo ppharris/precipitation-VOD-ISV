@@ -91,8 +91,8 @@ def main():
     metadata = ul.load_yaml(args)
 
     output_dirs = metadata.get("output_dirs", None)
-    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
-    seasons = metadata["lags"].get("seasons", None)
+    bands = [tuple(b) for b in metadata["filter"].get("bands", None)]
+    seasons = metadata["spectra"].get("seasons", None)
 
     datasets = metadata["datasets"]
 
