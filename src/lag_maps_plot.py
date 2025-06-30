@@ -169,8 +169,10 @@ def main():
 
     output_dirs = metadata.get("output_dirs", None)
     datasets = metadata["datasets"]
-    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
-    seasons = metadata["lags"].get("seasons", None)
+    bands = [tuple(b) for b in
+             ul.get_this_or_that("bands", metadata["plotmaps"], metadata["filter"])
+    ]
+    seasons = ul.get_this_or_that("seasons", metadata["plotmaps"], metadata["spectra"])
     plot_type = metadata["plots"].get("type", "png")
 
     ul.check_dirs(output_dirs,

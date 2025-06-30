@@ -38,6 +38,12 @@ filter:
   bands:
     - [25, 40]
     - [40, 60]
+    - [60, 100]
+
+plotmaps:
+  bands:
+    - [25, 40]
+    - [40, 60]
 
 lags:
   bands:

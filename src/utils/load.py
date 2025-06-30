@@ -33,3 +33,11 @@ def check_dirs(dirs, input_names=(), output_names=()):
         path = dirs[name]
         if not os.path.isdir(path):
             os.mkdir(path)
+
+
+def get_this_or_that(item, this, that):
+    """Return the requested item from this dict, else from that dict."""
+    try:
+        return this[item]
+    except (KeyError, TypeError):
+        return that[item]

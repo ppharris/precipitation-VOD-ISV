@@ -799,8 +799,7 @@ def main():
 
     datasets = metadata.get("datasets", None)
 
-    bands = [tuple(b) for b in metadata["lags"].get("bands", None)]
-    seasons = metadata["lags"].get("seasons", None)
+    seasons = metadata["spectra"].get("seasons", None)
     tiles = metadata["spectra"].get("tiles", None)
 
     ###########################################################################

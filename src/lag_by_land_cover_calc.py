@@ -490,7 +490,10 @@ def main():
 
     datasets = metadata["datasets"]
 
-    bands = [tuple(b) for b in metalags.get("bands", None)]
+    bands = [tuple(b) for b in
+             ul.get_this_or_that("bands", metalags, metadata["filter"])
+    ]
+
     seasons = metalags.get("seasons", None)
     lag_bin_bounds = {b: np.arange(*a) for b, a in zip(bands, metalags.get("lag_bin_bounds", None))}
     plot_type = metadata["plots"].get("type", "png")
